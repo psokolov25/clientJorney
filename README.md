@@ -218,3 +218,142 @@ java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-jou
 ```
 
 PostgreSQL migration использует JSONB для graph, settings, attempts, channel messages и widget themes.
+
+## План работ (roadmap реализации)
+
+### Sprint 0 — Baseline и контроль архитектурных ограничений (1–2 дня)
+1. Зафиксировать архитектурные decision records (ADR):
+   - embedded frontend only;
+   - единое ядро ScenarioEngine;
+   - VisitCreationClient SPI;
+   - storage switch via Micronaut `@Requires`.
+2. Подтвердить boundaries и anti-corruption layer для внешних систем (VisitManager/другие СУО).
+3. Настроить quality gates:
+   - Checkstyle/SpotBugs/PMD;
+   - unit/integration test profile;
+   - архитектурные тесты на отсутствие циклических зависимостей.
+
+### Sprint 1 — Каркас multi-module + единый runnable app (3–5 дней)
+1. Создать/доработать Maven multi-module структуру.
+2. Настроить `dependencyManagement`, версии плагинов, BOM.
+3. Подключить frontend build-module (React + TypeScript + Vite) и копирование статики в `client-journey-app`.
+4. Настроить упаковку single runnable jar (shade или аналог).
+5. Подготовить `application.yml`, `application-file.yml`, `application-h2.yml`, `application-postgres.yml`.
+
+**Definition of Done:** `./mvnw clean package` собирает backend + frontend и формирует единый артефакт.
+
+### Sprint 2 — Domain/Core + Runtime MVP (5–7 дней)
+1. Доменная модель: `Scenario`, `ScenarioGraph`, `Node`, `QuestionNode`, `ResultNode`, `ServiceRef`, `ConversationSession`, `ConversationAnswer`.
+2. Ядро:
+   - `ScenarioEngine`;
+   - `QuestionResolver`;
+   - `AnswerProcessor`;
+   - `ConversationSessionService`.
+3. Runtime API:
+   - `POST /api/runtime/scenarios/{scenarioCode}/sessions`;
+   - `POST /api/runtime/sessions/{sessionId}/answers`.
+4. Единые DTO `ClientInputMessage`/`ClientOutputMessage`.
+
+**Definition of Done:** REST-клиент проходит сценарий до `RESULT`, формируется корректный финальный ответ.
+
+### Sprint 3 — RouteValidation + Admin API (5–7 дней)
+1. Реализовать `RouteValidationService` с полным списком проверок графа.
+2. Реализовать CRUD сценариев и графа.
+3. Реализовать publish/archive/clone-version + запрет публикации невалидного графа.
+4. Реализовать import/export JSON.
+5. Подключить OpenAPI/Swagger.
+
+**Definition of Done:** админ может создать/провалидировать/опубликовать сценарий через API.
+
+### Sprint 4 — Storage SPI + File storage (4–6 дней)
+1. Выделить SPI-репозитории.
+2. Реализовать file storage:
+   - atomic write;
+   - backup-on-write;
+   - обработка corrupted JSON;
+   - single-node safety constraints.
+3. Покрыть тестами file repositories.
+
+**Definition of Done:** приложение стабильно работает в профиле `file` на полном runtime/admin флоу.
+
+### Sprint 5 — H2/PostgreSQL + Flyway (5–8 дней)
+1. Реализовать JDBC repositories для H2/PostgreSQL.
+2. Подготовить миграции:
+   - `db/migration/common` (H2);
+   - `db/migration/postgres` (JSONB).
+3. Добавить индексы и проверить планы выполнения для ключевых запросов.
+4. Интеграционные тесты с H2 и PostgreSQL.
+
+**Definition of Done:** профили `h2` и `postgres` проходят тестовый набор и запускаются без ручных правок.
+
+### Sprint 6 — Visit Creation Subdomain (6–9 дней)
+1. Реализовать `VisitCreationOrchestrator`.
+2. Реализовать `VisitManagerVisitCreationClient` с каноничными режимами:
+   - `ENTRYPOINT_WITH_PARAMETERS` (default);
+   - `ENTRYPOINT_SERVICE_IDS_ONLY`;
+   - `CREATE_THEN_UPDATE_PARAMETERS`;
+   - `RECEPTION_PRINTER_WITH_PARAMETERS`;
+   - `VIRTUAL_VISIT`.
+3. Реализовать `VisitParameterMapper`:
+   - `FLAT_PARAMETERS`;
+   - `COMPACT_JSON_PARAMETER`;
+   - PII masking;
+   - long-value strategies.
+4. Реализовать `CustomRestVisitCreationClient` (generic, конфигурируемый).
+5. Реализовать `Mock/DryRun` клиенты.
+
+**Definition of Done:** финал сценария создаёт визит или возвращает контролируемый результат dry-run/error.
+
+### Sprint 7 — Channel adapters (skeleton → production-ready path) (5–8 дней)
+1. WebSocket runtime skeleton `/ws/runtime`.
+2. Kafka adapter skeleton (input/output/events/DLQ + idempotency contract).
+3. Telegram polling skeleton (/start, /cancel, /restart).
+4. WhatsApp/MAX/Facebook — только официально-совместимые адаптерные точки + mock.
+
+**Definition of Done:** каналы подключаются к одному ядру без дублирования бизнес-логики.
+
+### Sprint 8 — Frontend Admin + Widget MVP (7–12 дней)
+1. Admin UI:
+   - список сценариев;
+   - карточка сценария;
+   - graph editor skeleton (React Flow);
+   - validation panel;
+   - visit-creation settings.
+2. Widget MVP:
+   - bootstrap script;
+   - чат-окно;
+   - вопросы/ответы;
+   - отображение результата/ошибок.
+3. Встроенная отдача статики через Micronaut `/admin/**` и `/widget/**`.
+
+**Definition of Done:** админ через UI создаёт маршрут, клиент проходит его через widget.
+
+### Sprint 9 — Observability, Security, Docs, Delivery (5–8 дней)
+1. Structured logging + correlationId.
+2. Micrometer метрики, health/readiness/liveness.
+3. Security baseline:
+   - роли ADMIN/DESIGNER/VIEWER/RUNTIME_CLIENT;
+   - CORS для widget;
+   - rate limiting runtime API;
+   - masking токенов/sid/PII.
+4. Dockerfile и docker-compose (без frontend-контейнера).
+5. Полный пакет документации + PlantUML диаграммы.
+
+**Definition of Done:** воспроизводимый запуск в Docker, документация покрывает разработку и эксплуатацию.
+
+### Критический путь и зависимости
+1. Сначала: multi-module build + embedded frontend pipeline.
+2. Затем: domain/core/runtime/admin validation.
+3. Затем: storage + visit creation.
+4. После: channels + UI/widget hardening.
+5. Финал: observability/security/perf + docs.
+
+### Риски и меры
+- **Риск:** расползание логики по адаптерам.  
+  **Мера:** контракты `ClientInputMessage`/`ClientOutputMessage`, code owners для core.
+- **Риск:** несовместимости H2/PostgreSQL JSON/JSONB.  
+  **Мера:** двойной набор integration tests и отдельные migration locations.
+- **Риск:** vendor lock-in на VisitManager.  
+  **Мера:** обязательный путь через `VisitCreationClient` SPI, contract tests для custom clients.
+- **Риск:** деградация UX редактора графа.  
+  **Мера:** frontend e2e smoke + snapshot tests на ключевые сценарии.
