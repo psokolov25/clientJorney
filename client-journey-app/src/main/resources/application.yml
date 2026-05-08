@@ -1,0 +1,19 @@
+micronaut:
+  application:
+    name: client-journey-platform
+  router:
+    static-resources:
+      admin:
+        enabled: true
+        mapping: /admin/**
+        paths:
+          - classpath:public/admin
+      widget:
+        enabled: true
+        mapping: /widget/**
+        paths:
+          - classpath:public/widget
+
+client-journey:
+  storage:
+    type: ${CLIENT_JOURNEY_STORAGE_TYPE:file}
