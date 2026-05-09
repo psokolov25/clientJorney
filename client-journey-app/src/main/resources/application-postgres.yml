@@ -1,0 +1,10 @@
+client-journey:
+  storage:
+    type: postgres
+
+datasources:
+  default:
+    url: ${DB_URL:`jdbc:postgresql://localhost:5432/client_journey`}
+    username: ${DB_USER:client_journey}
+    password: ${DB_PASSWORD:client_journey}
+    driverClassName: org.postgresql.Driver

@@ -1,0 +1,8 @@
+client-journey:
+  storage:
+    type: file
+    file:
+      base-dir: ${CLIENT_JOURNEY_FILE_STORAGE_DIR:`./data/client-journey`}
+      pretty-print-json: true
+      atomic-write: true
+      backup-on-write: true

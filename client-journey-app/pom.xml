@@ -10,6 +10,7 @@
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-core</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-storage-spi</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-visit-spi</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-visit-mock</artifactId><version>${project.version}</version></dependency>
 
     <dependency><groupId>io.micronaut.test</groupId><artifactId>micronaut-test-junit5</artifactId><version>4.3.0</version><scope>test</scope></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>

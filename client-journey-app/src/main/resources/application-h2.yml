@@ -1,0 +1,10 @@
+client-journey:
+  storage:
+    type: h2
+
+datasources:
+  default:
+    url: ${DB_URL:`jdbc:h2:file:./data/h2/client-journey;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH`}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+    driverClassName: org.h2.Driver
