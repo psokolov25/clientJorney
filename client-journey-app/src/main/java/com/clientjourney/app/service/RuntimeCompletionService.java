@@ -4,11 +4,12 @@ import com.clientjourney.app.dto.OutputMessage;
 import com.clientjourney.app.dto.SelectedServiceDto;
 import com.clientjourney.app.dto.StartSessionResponse;
 import com.clientjourney.app.dto.VisitCreationInfo;
-import com.clientjourney.visit.mock.DryRunVisitCreationClient;
+import com.clientjourney.visit.spi.VisitCreationClient;
 import com.clientjourney.visit.spi.VisitCreationRequest;
 import com.clientjourney.visit.spi.VisitCreationResult;
 import jakarta.inject.Singleton;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,26 +17,35 @@ import java.util.UUID;
 @Singleton
 public class RuntimeCompletionService {
     private final ServiceSelectionProcessor serviceSelectionProcessor;
-    private final DryRunVisitCreationClient dryRunVisitCreationClient;
+    private final ConversationSessionService conversationSessionService;
+    private final VisitCreationClient visitCreationClient;
 
     public RuntimeCompletionService(
         ServiceSelectionProcessor serviceSelectionProcessor,
-        DryRunVisitCreationClient dryRunVisitCreationClient
+        ConversationSessionService conversationSessionService,
+        VisitCreationClient visitCreationClient
     ) {
         this.serviceSelectionProcessor = serviceSelectionProcessor;
-        this.dryRunVisitCreationClient = dryRunVisitCreationClient;
+        this.conversationSessionService = conversationSessionService;
+        this.visitCreationClient = visitCreationClient;
     }
 
     public StartSessionResponse selectServicesAndComplete(UUID sessionId, List<SelectedServiceDto> selectedServices) {
         OutputMessage outputMessage = serviceSelectionProcessor.processSelectedServices(sessionId, selectedServices);
+        ConversationSessionService.SessionState sessionState = conversationSessionService.findSession(sessionId)
+            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
-        VisitCreationResult visit = dryRunVisitCreationClient.createVisit(new VisitCreationRequest(
+        Map<String, String> parameters = new HashMap<>();
+        sessionState.metadata().forEach((key, value) -> parameters.put(key, String.valueOf(value)));
+        parameters.put("selectedServicesCount", String.valueOf(selectedServices == null ? 0 : selectedServices.size()));
+
+        VisitCreationResult visit = visitCreationClient.createVisit(new VisitCreationRequest(
             sessionId,
-            "medical-registration",
+            sessionState.scenarioCode(),
             1,
-            "REST",
-            "anonymous",
-            Map.of("selectedServicesCount", String.valueOf(selectedServices == null ? 0 : selectedServices.size()))
+            sessionState.channel(),
+            sessionState.externalUserId(),
+            parameters
         ));
 
         VisitCreationInfo visitInfo = new VisitCreationInfo(

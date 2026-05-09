@@ -8,6 +8,7 @@ import com.clientjourney.core.SessionStartResult;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Singleton
@@ -20,12 +21,12 @@ public class RuntimeSessionService {
         this.conversationSessionService = conversationSessionService;
     }
 
-    public StartSessionResponse startSession(String scenarioCode, String externalUserId) {
+    public StartSessionResponse startSession(String scenarioCode, String channel, String externalUserId, Map<String, Object> metadata) {
         SessionStartResult result = scenarioEngine.startSession(scenarioCode, externalUserId);
         UUID sessionId = UUID.fromString(result.sessionId());
 
         List<SelectedServiceDto> allowedServices = defaultAllowedServices();
-        conversationSessionService.registerSession(sessionId, allowedServices, 1, 3);
+        conversationSessionService.registerSession(sessionId, scenarioCode, channel, externalUserId, metadata == null ? Map.of() : metadata, allowedServices, 1, 3);
 
         return StartSessionResponse.withoutVisitCreation(
             result.sessionId(),

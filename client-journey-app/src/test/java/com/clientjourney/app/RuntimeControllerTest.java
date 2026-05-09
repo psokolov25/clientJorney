@@ -43,7 +43,7 @@ class RuntimeControllerTest {
         RuntimeController controller = controller();
         StartSessionResponse started = controller.startSession(
             "medical-registration",
-            new StartSessionRequest("REST", "user-1", Map.of())
+            new StartSessionRequest("REST", "user-1", Map.of("source", "web"))
         );
 
         StartSessionResponse response = controller.answer(
@@ -60,7 +60,7 @@ class RuntimeControllerTest {
         RuntimeController controller = controller();
         StartSessionResponse started = controller.startSession(
             "medical-registration",
-            new StartSessionRequest("REST", "user-1", Map.of())
+            new StartSessionRequest("REST", "user-1", Map.of("source", "web"))
         );
 
         StartSessionResponse response = controller.selectServices(
@@ -79,7 +79,7 @@ class RuntimeControllerTest {
         ServiceSelectionProcessor processor = new ServiceSelectionProcessor(sessionService);
         RuntimeSessionService runtimeSessionService = new RuntimeSessionService(new ScenarioEngine(), sessionService);
         RuntimeAnswerService answerService = new RuntimeAnswerService(sessionService);
-        RuntimeCompletionService completionService = new RuntimeCompletionService(processor, new DryRunVisitCreationClient());
+        RuntimeCompletionService completionService = new RuntimeCompletionService(processor, sessionService, new DryRunVisitCreationClient());
         return new RuntimeController(runtimeSessionService, answerService, completionService);
     }
 }

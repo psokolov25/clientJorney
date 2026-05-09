@@ -25,6 +25,7 @@ public class ServiceSelectionProcessor {
         return OutputMessage.result("Service selection accepted. Selected services: " + safeServices.size());
     }
 
+
     private void validateSelection(List<SelectedServiceDto> selectedServices, ConversationSessionService.SessionState state) {
         int min = state.minSelectedServices();
         Integer max = state.maxSelectedServices();

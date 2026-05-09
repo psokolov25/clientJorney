@@ -6,6 +6,7 @@
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-http-server-netty</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-runtime</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-jackson-databind</artifactId><version>${micronaut.version}</version></dependency>
+    <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-websocket</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>io.micronaut.openapi</groupId><artifactId>micronaut-openapi-annotations</artifactId><version>6.13.2</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-core</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-storage-spi</artifactId><version>${project.version}</version></dependency>
