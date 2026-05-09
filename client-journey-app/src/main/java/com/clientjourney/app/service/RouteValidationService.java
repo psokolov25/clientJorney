@@ -2,14 +2,10 @@ package com.clientjourney.app.service;
 
 import com.clientjourney.app.admin.dto.GraphValidationIssue;
 import com.clientjourney.app.admin.dto.GraphValidationResult;
-import com.clientjourney.domain.model.NodeType;
-import com.clientjourney.domain.model.ScenarioEdge;
-import com.clientjourney.domain.model.ScenarioGraph;
-import com.clientjourney.domain.model.ScenarioNode;
+import com.clientjourney.domain.model.*;
 import jakarta.inject.Singleton;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Singleton
 public class RouteValidationService {
@@ -38,28 +34,36 @@ public class RouteValidationService {
             if (node.type() == NodeType.RESULT && (node.services() == null || node.services().isEmpty())) {
                 errors.add(new GraphValidationIssue("RESULT_WITHOUT_SERVICES", node.id(), "Result node must contain at least one service"));
             }
+            if (node.type() == NodeType.QUESTION && node.answers() != null) {
+                for (AnswerOption answer : node.answers()) {
+                    if (answer.nextNodeId() == null || answer.nextNodeId().isBlank()) {
+                        errors.add(new GraphValidationIssue("ANSWER_NEXT_NODE_MISSING", node.id(), "Question answer must point to next node"));
+                    }
+                }
+            }
         }
 
+        Set<String> edgeIds = new HashSet<>();
         for (ScenarioEdge edge : edges) {
+            if (!edgeIds.add(edge.id())) {
+                errors.add(new GraphValidationIssue("DUPLICATE_EDGE_ID", edge.id(), "Duplicate edge id detected"));
+            }
+            if (!nodeIds.contains(edge.sourceNodeId())) {
+                errors.add(new GraphValidationIssue("EDGE_SOURCE_NOT_FOUND", edge.sourceNodeId(), "Edge source node not found"));
+            }
             if (!nodeIds.contains(edge.targetNodeId())) {
                 errors.add(new GraphValidationIssue("EDGE_TARGET_NOT_FOUND", edge.targetNodeId(), "Edge target node not found"));
             }
         }
 
-        Map<String, Set<String>> adjacency = new HashMap<>();
-        for (ScenarioEdge edge : edges) {
-            adjacency.computeIfAbsent(edge.sourceNodeId(), k -> new HashSet<>()).add(edge.targetNodeId());
-        }
-        for (ScenarioNode node : nodes) {
-            if (node.answers() != null) {
-                node.answers().stream().filter(a -> a.nextNodeId() != null).forEach(a ->
-                    adjacency.computeIfAbsent(node.id(), k -> new HashSet<>()).add(a.nextNodeId())
-                );
-            }
-        }
+        Map<String, Set<String>> adjacency = buildAdjacency(nodes, edges);
 
         Optional<ScenarioNode> startNode = nodes.stream().filter(n -> n.type() == NodeType.START).findFirst();
         if (startNode.isPresent()) {
+            if (adjacency.getOrDefault(startNode.get().id(), Set.of()).isEmpty()) {
+                errors.add(new GraphValidationIssue("START_WITHOUT_OUTGOING", startNode.get().id(), "START node must have outgoing transition"));
+            }
+
             Set<String> reachable = bfs(startNode.get().id(), adjacency);
             for (ScenarioNode node : nodes) {
                 if (!reachable.contains(node.id())) {
@@ -68,7 +72,30 @@ public class RouteValidationService {
             }
         }
 
+        for (ScenarioNode node : nodes) {
+            if (node.type() == NodeType.QUESTION || node.type() == NodeType.INFO) {
+                if (adjacency.getOrDefault(node.id(), Set.of()).isEmpty()) {
+                    errors.add(new GraphValidationIssue("DEAD_END_NODE", node.id(), "Question/Info node must have outgoing transition"));
+                }
+            }
+        }
+
         return new GraphValidationResult(errors.isEmpty(), errors, warnings);
+    }
+
+    private Map<String, Set<String>> buildAdjacency(List<ScenarioNode> nodes, List<ScenarioEdge> edges) {
+        Map<String, Set<String>> adjacency = new HashMap<>();
+        for (ScenarioEdge edge : edges) {
+            adjacency.computeIfAbsent(edge.sourceNodeId(), k -> new HashSet<>()).add(edge.targetNodeId());
+        }
+        for (ScenarioNode node : nodes) {
+            if (node.answers() != null) {
+                node.answers().stream().filter(a -> a.nextNodeId() != null && !a.nextNodeId().isBlank()).forEach(a ->
+                    adjacency.computeIfAbsent(node.id(), k -> new HashSet<>()).add(a.nextNodeId())
+                );
+            }
+        }
+        return adjacency;
     }
 
     private Set<String> bfs(String root, Map<String, Set<String>> adjacency) {

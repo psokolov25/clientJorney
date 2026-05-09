@@ -2,6 +2,7 @@ package com.clientjourney.app.repository;
 
 import com.clientjourney.domain.model.Scenario;
 import com.clientjourney.storage.spi.ScenarioRepository;
+import io.micronaut.context.annotation.Requires;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Requires(property = "client-journey.storage.type", value = "in-memory")
 @Singleton
 public class InMemoryScenarioRepository implements ScenarioRepository {
     private final Map<UUID, Scenario> scenarios = new ConcurrentHashMap<>();

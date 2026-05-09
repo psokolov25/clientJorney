@@ -9,6 +9,13 @@
     <module>client-journey-domain</module>
     <module>client-journey-core</module>
     <module>client-journey-storage-spi</module>
+    <module>client-journey-storage-file</module>
+    <module>client-journey-storage-h2</module>
+    <module>client-journey-storage-postgres</module>
+    <module>client-journey-channel-spi</module>
+    <module>client-journey-visit-visitmanager</module>
+    <module>client-journey-visit-custom-rest</module>
+    <module>client-journey-visit-mock</module>
     <module>client-journey-visit-spi</module>
     <module>client-journey-app</module>
   </modules>

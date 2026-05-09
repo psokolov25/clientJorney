@@ -20,6 +20,25 @@ class RouteValidationServiceTest {
     }
 
     @Test
+    void shouldDetectStartWithoutOutgoingTransition() {
+        ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "Start", List.of(), List.of());
+        ScenarioGraph graph = new ScenarioGraph(UUID.randomUUID(), 1, List.of(start), List.of());
+
+        var validation = service.validate(graph);
+        assertTrue(validation.errors().stream().anyMatch(e -> e.code().equals("START_WITHOUT_OUTGOING")));
+    }
+
+    @Test
+    void shouldDetectQuestionAnswerWithoutNextNode() {
+        ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "Start", List.of(), List.of());
+        ScenarioNode question = new ScenarioNode("q1", NodeType.QUESTION, "need", "Need?", List.of(new AnswerOption("a1", "yes", "Yes", null)), List.of());
+        ScenarioGraph graph = new ScenarioGraph(UUID.randomUUID(), 1, List.of(start, question), List.of(new ScenarioEdge("e1", "start", null, "q1")));
+
+        var validation = service.validate(graph);
+        assertTrue(validation.errors().stream().anyMatch(e -> e.code().equals("ANSWER_NEXT_NODE_MISSING")));
+    }
+
+    @Test
     void shouldReturnValidForSimpleReachableGraph() {
         ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "start", List.of(), List.of());
         ScenarioNode question = new ScenarioNode("q1", NodeType.QUESTION, "need", "Need?", List.of(new AnswerOption("a1", "yes", "Yes", "r1")), List.of());
