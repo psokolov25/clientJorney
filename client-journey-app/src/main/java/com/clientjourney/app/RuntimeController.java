@@ -35,7 +35,8 @@ public class RuntimeController {
         String externalUserId = request.externalUserId() == null || request.externalUserId().isBlank()
             ? "anonymous"
             : request.externalUserId();
-        return runtimeSessionService.startSession(scenarioCode, externalUserId);
+        String channel = request.channel() == null || request.channel().isBlank() ? "REST" : request.channel();
+        return runtimeSessionService.startSession(scenarioCode, channel, externalUserId, request.metadata());
     }
 
     @Post("/sessions/{sessionId}/answers")
@@ -47,4 +48,10 @@ public class RuntimeController {
     public StartSessionResponse selectServices(@PathVariable UUID sessionId, @Body ServiceSelectionRequest request) {
         return runtimeCompletionService.selectServicesAndComplete(sessionId, request.selectedServices());
     }
+
+    @Post("/sessions/{sessionId}/selected-services/confirm")
+    public StartSessionResponse confirmSelectedServices(@PathVariable UUID sessionId, @Body ServiceSelectionRequest request) {
+        return runtimeCompletionService.selectServicesAndComplete(sessionId, request.selectedServices());
+    }
+
 }

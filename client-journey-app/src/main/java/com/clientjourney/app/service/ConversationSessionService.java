@@ -13,8 +13,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ConversationSessionService {
     private final Map<UUID, SessionState> sessions = new ConcurrentHashMap<>();
 
-    public void registerSession(UUID sessionId, List<SelectedServiceDto> allowedServices, int minSelectedServices, Integer maxSelectedServices) {
-        sessions.put(sessionId, new SessionState(allowedServices, minSelectedServices, maxSelectedServices, List.of()));
+    public void registerSession(
+        UUID sessionId,
+        String scenarioCode,
+        String channel,
+        String externalUserId,
+        Map<String, Object> metadata,
+        List<SelectedServiceDto> allowedServices,
+        int minSelectedServices,
+        Integer maxSelectedServices
+    ) {
+        sessions.put(sessionId, new SessionState(scenarioCode, channel, externalUserId, metadata, allowedServices, minSelectedServices, maxSelectedServices, List.of()));
     }
 
     public Optional<SessionState> findSession(UUID sessionId) {
@@ -26,10 +35,23 @@ public class ConversationSessionService {
         if (state == null) {
             throw new IllegalArgumentException("Session not found: " + sessionId);
         }
-        sessions.put(sessionId, new SessionState(state.allowedServices(), state.minSelectedServices(), state.maxSelectedServices(), selectedServices));
+        sessions.put(sessionId, new SessionState(
+            state.scenarioCode(),
+            state.channel(),
+            state.externalUserId(),
+            state.metadata(),
+            state.allowedServices(),
+            state.minSelectedServices(),
+            state.maxSelectedServices(),
+            selectedServices
+        ));
     }
 
     public record SessionState(
+        String scenarioCode,
+        String channel,
+        String externalUserId,
+        Map<String, Object> metadata,
         List<SelectedServiceDto> allowedServices,
         int minSelectedServices,
         Integer maxSelectedServices,
