@@ -15,8 +15,8 @@
 - [x] File storage module with atomic write, backup-on-write and corrupted JSON handling.
 
 ### Planned next
-- [ ] H2 storage module + migrations.
-- [ ] PostgreSQL storage module + mappings/indexes.
-- [ ] Storage selection via Micronaut `@Requires`.
+- [x] H2 storage module + baseline schema bootstrap.
+- [x] PostgreSQL storage module + baseline mappings/indexes.
+- [x] Storage selection via Micronaut `@Requires`.
 - [ ] Visit creation orchestration and clients.
 - [ ] Embedded frontend build and static asset delivery.

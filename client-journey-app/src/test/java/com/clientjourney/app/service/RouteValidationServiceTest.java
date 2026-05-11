@@ -39,6 +39,30 @@ class RouteValidationServiceTest {
     }
 
     @Test
+    void shouldDetectDuplicateAnswerIdsInsideQuestionNode() {
+        ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "start", List.of(), List.of());
+        ScenarioNode result = new ScenarioNode("r1", NodeType.RESULT, "result", "Done", List.of(), List.of(new ServiceRef("svc1", "S1", "Service")));
+        ScenarioNode question = new ScenarioNode("q1", NodeType.QUESTION, "need", "Need?", List.of(
+            new AnswerOption("a1", "yes", "Yes", "r1"),
+            new AnswerOption("a1", "no", "No", "r1")
+        ), List.of());
+        ScenarioGraph graph = new ScenarioGraph(UUID.randomUUID(), 1, List.of(start, question, result), List.of(new ScenarioEdge("e1", "start", null, "q1")));
+
+        var validation = service.validate(graph);
+        assertTrue(validation.errors().stream().anyMatch(e -> e.code().equals("DUPLICATE_ANSWER_ID")));
+    }
+
+    @Test
+    void shouldDetectAnswerNextNodeNotFound() {
+        ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "start", List.of(), List.of());
+        ScenarioNode question = new ScenarioNode("q1", NodeType.QUESTION, "need", "Need?", List.of(new AnswerOption("a1", "yes", "Yes", "missing")), List.of());
+        ScenarioGraph graph = new ScenarioGraph(UUID.randomUUID(), 1, List.of(start, question), List.of(new ScenarioEdge("e1", "start", null, "q1")));
+
+        var validation = service.validate(graph);
+        assertTrue(validation.errors().stream().anyMatch(e -> e.code().equals("ANSWER_NEXT_NODE_NOT_FOUND")));
+    }
+
+    @Test
     void shouldReturnValidForSimpleReachableGraph() {
         ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "start", List.of(), List.of());
         ScenarioNode question = new ScenarioNode("q1", NodeType.QUESTION, "need", "Need?", List.of(new AnswerOption("a1", "yes", "Yes", "r1")), List.of());

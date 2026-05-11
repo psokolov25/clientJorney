@@ -9,7 +9,10 @@ import io.micronaut.http.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+@Tag(name = "Admin API")
 @Controller("/api/admin/scenarios")
 public class AdminScenarioController {
     private final ScenarioService scenarioService;
@@ -18,27 +21,32 @@ public class AdminScenarioController {
         this.scenarioService = scenarioService;
     }
 
+    @Operation(summary = "List scenarios")
     @Get
     public List<Scenario> findAll() {
         return scenarioService.findAll();
     }
 
+    @Operation(summary = "Create scenario")
     @Post
     @Status(HttpStatus.CREATED)
     public Scenario create(@Body CreateScenarioRequest request) {
         return scenarioService.create(request);
     }
 
+    @Operation(summary = "Get scenario by id")
     @Get("/{id}")
     public Scenario findById(UUID id) {
         return scenarioService.findById(id);
     }
 
+    @Operation(summary = "Update scenario")
     @Put("/{id}")
     public Scenario update(UUID id, @Body UpdateScenarioRequest request) {
         return scenarioService.update(id, request);
     }
 
+    @Operation(summary = "Delete scenario")
     @Delete("/{id}")
     @Status(HttpStatus.NO_CONTENT)
     public void delete(UUID id) {

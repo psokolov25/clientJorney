@@ -30,6 +30,25 @@ public class ConversationSessionService {
         return Optional.ofNullable(sessions.get(sessionId));
     }
 
+    public void updateCurrentNodeId(UUID sessionId, String currentNodeId) {
+        SessionState state = sessions.get(sessionId);
+        if (state == null) {
+            throw new IllegalArgumentException("Session not found: " + sessionId);
+        }
+        Map<String, Object> updatedMetadata = new ConcurrentHashMap<>(state.metadata());
+        updatedMetadata.put("currentNodeId", currentNodeId);
+        sessions.put(sessionId, new SessionState(
+            state.scenarioCode(),
+            state.channel(),
+            state.externalUserId(),
+            updatedMetadata,
+            state.allowedServices(),
+            state.minSelectedServices(),
+            state.maxSelectedServices(),
+            state.selectedServices()
+        ));
+    }
+
     public void saveSelectedServices(UUID sessionId, List<SelectedServiceDto> selectedServices) {
         SessionState state = sessions.get(sessionId);
         if (state == null) {

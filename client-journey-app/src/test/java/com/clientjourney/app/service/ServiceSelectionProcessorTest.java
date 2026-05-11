@@ -33,6 +33,8 @@ class ServiceSelectionProcessorTest {
 
         assertEquals("RESULT", output.type());
         assertTrue(output.text().contains("Selected services: 1"));
+        assertEquals(1, ((java.util.List<?>) output.payload().get("selectedServices")).size());
+        assertEquals(1, output.payload().get("selectedCount"));
         var state = conversationSessionService.findSession(sessionId).orElseThrow();
         assertEquals(1, state.selectedServices().size());
         assertEquals("svc-1", state.selectedServices().get(0).serviceId());

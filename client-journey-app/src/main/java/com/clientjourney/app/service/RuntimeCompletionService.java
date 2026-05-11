@@ -30,6 +30,13 @@ public class RuntimeCompletionService {
         this.visitCreationClient = visitCreationClient;
     }
 
+
+    public StartSessionResponse confirmSelectedServices(UUID sessionId) {
+        ConversationSessionService.SessionState sessionState = conversationSessionService.findSession(sessionId)
+            .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+        return selectServicesAndComplete(sessionId, sessionState.selectedServices());
+    }
+
     public StartSessionResponse selectServicesAndComplete(UUID sessionId, List<SelectedServiceDto> selectedServices) {
         OutputMessage outputMessage = serviceSelectionProcessor.processSelectedServices(sessionId, selectedServices);
         ConversationSessionService.SessionState sessionState = conversationSessionService.findSession(sessionId)

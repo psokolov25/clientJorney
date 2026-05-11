@@ -13,6 +13,9 @@
     <module>client-journey-storage-h2</module>
     <module>client-journey-storage-postgres</module>
     <module>client-journey-channel-spi</module>
+    <module>client-journey-channel-kafka</module>
+    <module>client-journey-channel-telegram</module>
+    <module>client-journey-channel-websocket</module>
     <module>client-journey-visit-visitmanager</module>
     <module>client-journey-visit-custom-rest</module>
     <module>client-journey-visit-mock</module>
@@ -26,4 +29,32 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <micronaut.version>4.4.7</micronaut.version>
   </properties>
+  <profiles>
+    <profile>
+      <id>integration-tests</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>3.2.5</version>
+            <executions>
+              <execution>
+                <goals><goal>integration-test</goal><goal>verify</goal></goals>
+                <configuration>
+                  <includes><include>**/*IT.java</include></includes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>test-resources</id>
+      <properties>
+        <clientjourney.test.resources.enabled>true</clientjourney.test.resources.enabled>
+      </properties>
+    </profile>
+  </profiles>
 </project>

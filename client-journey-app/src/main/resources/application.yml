@@ -17,3 +17,5 @@ micronaut:
 client-journey:
   storage:
     type: ${CLIENT_JOURNEY_STORAGE_TYPE:file}
+  visit:
+    client: ${CLIENT_JOURNEY_VISIT_CLIENT:dry-run}

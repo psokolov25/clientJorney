@@ -10,24 +10,24 @@
 - [ ] Admin REST API
 - [ ] Storage SPI
 - [x] File storage (single-node)
-- [ ] H2 storage
-- [ ] PostgreSQL storage
-- [ ] Переключение storage через `client-journey.storage.type`
-- [ ] Валидация графа маршрута (production-правила)
-- [ ] Runtime прохождение маршрута через единое ядро
-- [ ] Выбор пользователем от 1 до N услуг в RESULT-узле
-- [ ] Runtime endpoint подтверждения выбранных услуг
-- [ ] ServiceSelectionProcessor
-- [ ] VisitCreation SPI
-- [ ] VisitManager client (`ENTRYPOINT_WITH_PARAMETERS`)
-- [ ] Dry-run visit creation
-- [ ] Custom REST client skeleton
-- [ ] Telegram polling adapter skeleton
-- [ ] Kafka adapter skeleton
-- [ ] WebSocket adapter skeleton
-- [ ] Swagger/OpenAPI
-- [ ] Dockerfile единого приложения
-- [ ] docker-compose (app + postgres + kafka, без отдельного frontend-контейнера)
+- [x] H2 storage
+- [x] PostgreSQL storage
+- [x] Переключение storage через `client-journey.storage.type`
+- [x] Валидация графа маршрута (production-правила)
+- [x] Runtime прохождение маршрута через единое ядро
+- [x] Выбор пользователем от 1 до N услуг в RESULT-узле
+- [x] Runtime endpoint подтверждения выбранных услуг
+- [x] ServiceSelectionProcessor
+- [x] VisitCreation SPI
+- [x] VisitManager client (`ENTRYPOINT_WITH_PARAMETERS`)
+- [x] Dry-run visit creation
+- [x] Custom REST client skeleton
+- [x] Telegram polling adapter skeleton
+- [x] Kafka adapter skeleton
+- [x] WebSocket adapter skeleton
+- [x] Swagger/OpenAPI
+- [x] Dockerfile единого приложения
+- [x] docker-compose (app + postgres + kafka, без отдельного frontend-контейнера)
 - [ ] WEB GUI на русском и английском языках
 - [ ] Resource files локализации frontend (ru/en)
 

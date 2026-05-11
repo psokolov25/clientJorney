@@ -22,7 +22,9 @@ public class ServiceSelectionProcessor {
 
         validateSelection(safeServices, state);
         conversationSessionService.saveSelectedServices(sessionId, safeServices);
-        return OutputMessage.result("Service selection accepted. Selected services: " + safeServices.size());
+        return new OutputMessage("RESULT",
+            "Service selection accepted. Selected services: " + safeServices.size(),
+            Map.of("selectedServices", safeServices, "selectedCount", safeServices.size()));
     }
 
 

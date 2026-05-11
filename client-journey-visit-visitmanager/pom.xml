@@ -5,5 +5,6 @@
   <dependencies>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-visit-spi</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-runtime</artifactId><version>${micronaut.version}</version></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>
   </dependencies>
 </project>
