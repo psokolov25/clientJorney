@@ -28,16 +28,31 @@ public class RouteValidationService {
             if (!nodeIds.add(node.id())) {
                 errors.add(new GraphValidationIssue("DUPLICATE_NODE_ID", node.id(), "Duplicate node id detected"));
             }
+        }
+
+        for (ScenarioNode node : nodes) {
             if (node.type() == NodeType.QUESTION && (node.answers() == null || node.answers().isEmpty())) {
                 errors.add(new GraphValidationIssue("QUESTION_WITHOUT_ANSWERS", node.id(), "Question node must contain at least one answer"));
             }
             if (node.type() == NodeType.RESULT && (node.services() == null || node.services().isEmpty())) {
                 errors.add(new GraphValidationIssue("RESULT_WITHOUT_SERVICES", node.id(), "Result node must contain at least one service"));
             }
+            if (node.answers() != null) {
+                Set<String> answerIds = new HashSet<>();
+                for (AnswerOption answer : node.answers()) {
+                    if (answer.id() == null || answer.id().isBlank()) {
+                        errors.add(new GraphValidationIssue("ANSWER_ID_MISSING", node.id(), "Answer id must be present"));
+                    } else if (!answerIds.add(answer.id())) {
+                        errors.add(new GraphValidationIssue("DUPLICATE_ANSWER_ID", node.id(), "Duplicate answer id inside node"));
+                    }
+                }
+            }
             if (node.type() == NodeType.QUESTION && node.answers() != null) {
                 for (AnswerOption answer : node.answers()) {
                     if (answer.nextNodeId() == null || answer.nextNodeId().isBlank()) {
                         errors.add(new GraphValidationIssue("ANSWER_NEXT_NODE_MISSING", node.id(), "Question answer must point to next node"));
+                    } else if (!nodeIds.contains(answer.nextNodeId())) {
+                        errors.add(new GraphValidationIssue("ANSWER_NEXT_NODE_NOT_FOUND", node.id(), "Question answer points to missing node"));
                     }
                 }
             }

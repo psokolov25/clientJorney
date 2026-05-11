@@ -74,6 +74,24 @@ class RuntimeControllerTest {
         assertEquals("DRY_RUN", response.visitCreation().status());
     }
 
+
+    @Test
+    void confirmSelectedServicesShouldCompleteUsingStoredSelection() {
+        RuntimeController controller = controller();
+        StartSessionResponse started = controller.startSession(
+            "medical-registration",
+            new StartSessionRequest("REST", "user-1", Map.of("source", "web"))
+        );
+
+        controller.selectServices(
+            UUID.fromString(started.sessionId()),
+            new ServiceSelectionRequest(List.of(new SelectedServiceDto("svc-1", "THERAPIST", "Therapist")))
+        );
+
+        StartSessionResponse confirmed = controller.confirmSelectedServices(UUID.fromString(started.sessionId()));
+        assertEquals("COMPLETED", confirmed.status());
+        assertNotNull(confirmed.visitCreation());
+    }
     private RuntimeController controller() {
         ConversationSessionService sessionService = new ConversationSessionService();
         ServiceSelectionProcessor processor = new ServiceSelectionProcessor(sessionService);
