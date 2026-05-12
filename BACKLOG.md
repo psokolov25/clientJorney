@@ -4,6 +4,7 @@
 
 - `project-management/backlog.md` — основной бэклог (RU)
 - `project-management/checklist.md` — архитектурный и функциональный чеклист (RU)
+- `project-management/backlog-coverage.md` — аудит фактического покрытия бэклога (RU)
 
 ## Технический статус текущей кодовой базы
 
