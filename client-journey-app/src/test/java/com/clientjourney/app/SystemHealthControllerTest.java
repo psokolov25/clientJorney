@@ -11,7 +11,7 @@ class SystemHealthControllerTest {
 
     @Test
     void probes_should_return_expected_statuses() {
-        SystemHealthController controller = new SystemHealthController();
+        SystemObservabilityController controller = new SystemObservabilityController();
 
         Map<String, Object> health = controller.health();
         Map<String, Object> readiness = controller.readiness();

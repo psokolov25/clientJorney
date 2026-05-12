@@ -10,9 +10,9 @@ micronaut:
           - classpath:public/admin
       widget:
         enabled: true
-        mapping: /widget/**
+        mapping: /chat/**
         paths:
-          - classpath:public/widget
+          - classpath:public/chat
       swagger:
         enabled: true
         mapping: /swagger/**
