@@ -7,6 +7,7 @@ import io.micronaut.http.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Admin API")
@@ -18,21 +19,27 @@ public class AdminVisitCreationSettingsController {
         this.service = service;
     }
 
-    @Operation(summary = "Get visit creation settings")
+    @Operation(summary = "Получить настройки создания визита")
     @Get
     public VisitCreationSettingsDto get(UUID id) {
         return service.get(id);
     }
 
-    @Operation(summary = "Save visit creation settings")
+    @Operation(summary = "Сохранить настройки создания визита")
     @Put
     public VisitCreationSettingsDto put(UUID id, @Body VisitCreationSettingsDto request) {
         return service.put(id, request);
     }
 
-    @Operation(summary = "Test visit creation settings")
+    @Operation(summary = "Проверить настройки создания визита")
     @Post("/test")
     public VisitCreationSettingsTestResultDto test(UUID id) {
         return service.test(id);
+    }
+
+    @Operation(summary = "Определить baseUrl VisitManager для отделения")
+    @Get("/resolve")
+    public Map<String, String> resolve(UUID id, @QueryValue(defaultValue = "") String branchId) {
+        return Map.of("branchId", branchId, "baseUrl", service.resolveBaseUrl(id, branchId));
     }
 }

@@ -43,6 +43,11 @@ public class ScenarioService {
         return scenarioRepository.findById(id).orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "Scenario not found: " + id));
     }
 
+    public Scenario findByCode(String code) {
+        return scenarioRepository.findByCode(code)
+            .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "Scenario not found by code: " + code));
+    }
+
     public Scenario update(UUID id, UpdateScenarioRequest request) {
         Scenario existing = findById(id);
         Scenario updated = new Scenario(

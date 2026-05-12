@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Journey WebGUI</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f6f8fa; color: #1f2328; }
+    .wrap { max-width: 760px; margin: 48px auto; background: #fff; border: 1px solid #d0d7de; border-radius: 12px; padding: 28px; }
+    h1 { margin-top: 0; }
+    .links { display: grid; gap: 12px; margin-top: 20px; }
+    a { display: block; text-decoration: none; border: 1px solid #d0d7de; border-radius: 8px; padding: 14px; color: #0969da; font-weight: 600; }
+    a:hover { background: #f6f8fa; }
+    .muted { color: #57606a; font-size: 14px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Client Journey Platform</h1>
+    <p>Единая точка входа в WebGUI системы.</p>
+    <div class="links">
+      <a href="/admin/">Открыть Admin UI (/admin/)</a>
+      <a href="/chat/">Открыть Chat UI (/chat/)</a>
+      <a href="/swagger-ui/">Открыть Swagger UI (/swagger-ui/)</a>
+    </div>
+    <p class="muted">Runtime/Admin API доступны под префиксом <code>/api</code>.</p>
+  </main>
+</body>
+</html>

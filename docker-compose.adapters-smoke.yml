@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    environment:
+      - CJ_OBS_VISIT_PROVIDER_STATUS=UP
+      - CJ_OBS_STORAGE_STATUS=UP
+    ports:
+      - "8080:8080"
+  mock-provider:
+    image: hashicorp/http-echo:1.0
+    command: ["-text=ok"]
+    ports:
+      - "5678:5678"

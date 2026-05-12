@@ -1,0 +1,32 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Admin" as Admin
+actor "Client" as Client
+actor "Operator" as Operator
+
+rectangle "Client Journey Platform\n(Micronaut app)" as CJP {
+  rectangle "Runtime API" as Runtime
+  rectangle "Admin API" as AdminApi
+  rectangle "Embedded Admin UI" as AdminUi
+  rectangle "Embedded Chat UI" as ChatUi
+  rectangle "Scenario Engine" as Engine
+}
+
+cloud "VisitManager / External Queue API" as Visit
+cloud "Messaging Providers\n(Telegram/WhatsApp/MAX/Facebook)" as Msg
+database "Storage\n(File/H2/PostgreSQL)" as DB
+
+Admin --> AdminUi
+AdminUi --> AdminApi
+Client --> ChatUi
+ChatUi --> Runtime
+Operator --> AdminApi
+Runtime --> Engine
+AdminApi --> Engine
+Engine --> DB
+Engine --> Visit
+Msg --> Runtime
+Runtime --> Msg
+@enduml

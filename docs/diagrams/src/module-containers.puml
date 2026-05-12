@@ -1,0 +1,44 @@
+@startuml
+top to bottom direction
+skinparam packageStyle rectangle
+
+package "client-journey-app" {
+  [Controllers\nRuntime/Admin/System]
+  [Security Filters\nApiKey/RateLimit]
+  [Service Layer]
+}
+
+package "client-journey-core" {
+  [ScenarioEngine]
+}
+
+package "client-journey-domain" {
+  [Scenario/Graph/Node models]
+}
+
+package "client-journey-storage-*" {
+  [Storage SPI]
+  [File/H2/Postgres impl]
+}
+
+package "client-journey-channel-*" {
+  [Channel SPI]
+  [Adapters]
+}
+
+package "client-journey-visit-*" {
+  [Visit SPI]
+  [VisitManager/Custom/Mock clients]
+}
+
+[Controllers\nRuntime/Admin/System] --> [Service Layer]
+[Security Filters\nApiKey/RateLimit] --> [Controllers\nRuntime/Admin/System]
+[Service Layer] --> [ScenarioEngine]
+[ScenarioEngine] --> [Scenario/Graph/Node models]
+[Service Layer] --> [Storage SPI]
+[Storage SPI] --> [File/H2/Postgres impl]
+[Controllers\nRuntime/Admin/System] --> [Channel SPI]
+[Controllers\nRuntime/Admin/System] --> [Visit SPI]
+[Visit SPI] --> [VisitManager/Custom/Mock clients]
+[Channel SPI] --> [Adapters]
+@enduml

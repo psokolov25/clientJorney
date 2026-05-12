@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="571px" preserveAspectRatio="none" style="width:1074px;height:571px;" version="1.1" viewBox="0 0 1074 571" width="1074px" zoomAndPan="magnify"><defs><filter height="300%" id="fot4uiaxb3c0" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[7f9e32246a09fa01c331c02499161abd]
+cluster client-journey-app--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="566,24,716,24,723,46.2969,780,46.2969,780,337,566,337,566,24" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="566" x2="723" y1="46.2969" y2="46.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="144" x="570" y="38.9951">client-journey-app</text><!--MD5=[d1f446f2e226bff363f1d81b94921fb4]
+cluster client-journey-core--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="820,361,977,361,984,383.2969,987,383.2969,987,448,820,448,820,361" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="820" x2="984" y1="383.2969" y2="383.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="151" x="824" y="375.9951">client-journey-core</text><!--MD5=[def78758d4419139666761d41a7da73b]
+cluster client-journey-domain--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="796,472,974,472,981,494.2969,1052,494.2969,1052,559,796,559,796,472" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="796" x2="981" y1="494.2969" y2="494.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="172" x="800" y="486.9951">client-journey-domain</text><!--MD5=[e510bc940dd92ac04f2d2c02569e7a27]
+cluster client-journey-storage-*--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="567,361,762,361,769,383.2969,772,383.2969,772,559,567,559,567,361" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="567" x2="769" y1="383.2969" y2="383.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="189" x="571" y="375.9951">client-journey-storage-*</text><!--MD5=[f0946870966c556eabd9ffc2a77348ee]
+cluster client-journey-channel-*--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="22,250,218,250,225,272.2969,228,272.2969,228,448,22,448,22,250" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="22" x2="225" y1="272.2969" y2="272.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="190" x="26" y="264.9951">client-journey-channel-*</text><!--MD5=[61142037576ace186addfd90a22ef054]
+cluster client-journey-visit-*--><polygon fill="#FFFFFF" filter="url(#fot4uiaxb3c0)" points="252,250,418,250,425,272.2969,542,272.2969,542,448,252,448,252,250" style="stroke: #000000; stroke-width: 1.5;"/><line style="stroke: #000000; stroke-width: 1.5;" x1="252" x2="425" y1="272.2969" y2="272.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacingAndGlyphs" textLength="160" x="256" y="264.9951">client-journey-visit-*</text><!--MD5=[93f5801b405fac678e46f3c82d3f73a7]
+entity Controllers\nRuntime/Admin/System--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="52.5938" style="stroke: #A80036; stroke-width: 1.5;" width="182" x="582" y="172"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="577" y="177"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="577" y="214.5938"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="75" x="592" y="194.9951">Controllers</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="162" x="592" y="211.292">Runtime/Admin/System</text><!--MD5=[946ea99a3528f171d4faaa245de38b72]
+entity Security Filters\nApiKey/RateLimit--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="52.5938" style="stroke: #A80036; stroke-width: 1.5;" width="134" x="606" y="59"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="601" y="64"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="601" y="101.5938"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="100" x="616" y="81.9951">Security Filters</text><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="114" x="616" y="98.292">ApiKey/RateLimit</text><!--MD5=[8150ed9474e8b329c437fd79b4b13e28]
+entity Service Layer--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="110" x="618" y="285"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="613" y="290"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="613" y="311.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="90" x="628" y="307.9951">Service Layer</text><!--MD5=[78ee81a56a3cdebbb4779eefb7c4d4ce]
+entity ScenarioEngine--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="128" x="839" y="396"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="834" y="401"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="834" y="422.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="108" x="849" y="418.9951">ScenarioEngine</text><!--MD5=[563c6e2d68c891da5c9853d3d052e02b]
+entity Scenario/Graph/Node models--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="224" x="812" y="507"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="807" y="512"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="807" y="533.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="204" x="822" y="529.9951">Scenario/Graph/Node models</text><!--MD5=[c33acef5a80c0e00839e546b41edaeec]
+entity Storage SPI--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="99" x="623.5" y="396"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="618.5" y="401"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="618.5" y="422.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="79" x="633.5" y="418.9951">Storage SPI</text><!--MD5=[3e058eb8ed1f8356d15f8bfae62853d4]
+entity File/H2/Postgres impl--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="166" x="590" y="507"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="585" y="512"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="585" y="533.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="146" x="600" y="529.9951">File/H2/Postgres impl</text><!--MD5=[fc33668d7c67b32eca248b33cf14a68f]
+entity Channel SPI--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="102" x="110" y="285"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="105" y="290"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="105" y="311.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="82" x="120" y="307.9951">Channel SPI</text><!--MD5=[c0b8fd0739927fe5d3134992df684e10]
+entity Adapters--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="82" x="120" y="396"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="115" y="401"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="115" y="422.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="62" x="130" y="418.9951">Adapters</text><!--MD5=[d1b09866186cc480496fd60416099d8f]
+entity Visit SPI--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="73" x="406.5" y="285"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="401.5" y="290"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="401.5" y="311.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="53" x="416.5" y="307.9951">Visit SPI</text><!--MD5=[858958f3c8aeee07ba720eb75fbfafce]
+entity VisitManager/Custom/Mock clients--><rect fill="#FEFECE" filter="url(#fot4uiaxb3c0)" height="36.2969" style="stroke: #A80036; stroke-width: 1.5;" width="258" x="268" y="396"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="263" y="401"/><rect fill="#FEFECE" height="5" style="stroke: #A80036; stroke-width: 1.5;" width="10" x="263" y="422.2969"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="238" x="278" y="418.9951">VisitManager/Custom/Mock clients</text><!--MD5=[4307cacd6b038ddac3d6d8853c964493]
+link Controllers\nRuntime/Admin/System to Service Layer--><path d="M673,225.1 C673,241.83 673,263.47 673,279.53 " fill="none" id="Controllers\nRuntime/Admin/System-&gt;Service Layer" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="673,284.75,677,275.75,673,279.75,669,275.75,673,284.75" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[5d51ca67e99a7dbf2907fb0c15a77297]
+link Security Filters\nApiKey/RateLimit to Controllers\nRuntime/Admin/System--><path d="M673,112.24 C673,128.5 673,149.58 673,166.71 " fill="none" id="Security Filters\nApiKey/RateLimit-&gt;Controllers\nRuntime/Admin/System" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="673,171.89,677.0257,162.9015,673.0143,166.89,669.0257,162.8786,673,171.89" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[237239cd4db94913b16ce2fe7c375164]
+link Service Layer to ScenarioEngine--><path d="M708.94,321.03 C750.51,340.73 818.79,373.09 862.28,393.7 " fill="none" id="Service Layer-&gt;ScenarioEngine" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="866.94,395.91,860.5248,388.437,862.4231,393.7659,857.0942,395.6641,866.94,395.91" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[a4a2e351e4252ee6dfcf989f0fd1dd92]
+link ScenarioEngine to Scenario/Graph/Node models--><path d="M906.28,432.03 C909.9,450.8 915.73,481.05 919.7,501.7 " fill="none" id="ScenarioEngine-&gt;Scenario/Graph/Node models" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="920.67,506.73,922.8974,497.1363,919.7252,501.8201,915.0415,498.6479,920.67,506.73" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[329f18723f06ff3eb8971d7ced9d313c]
+link Service Layer to Storage SPI--><path d="M673,321.03 C673,339.8 673,370.05 673,390.7 " fill="none" id="Service Layer-&gt;Storage SPI" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="673,395.73,677,386.73,673,390.73,669,386.73,673,395.73" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[aafb3e47a06fdd6acfdfbdda43d76c69]
+link Storage SPI to File/H2/Postgres impl--><path d="M673,432.03 C673,450.8 673,481.05 673,501.7 " fill="none" id="Storage SPI-&gt;File/H2/Postgres impl" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="673,506.73,677,497.73,673,501.73,669,497.73,673,506.73" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[3bd8efa41e0d2851f00f5d774cd6749f]
+link Controllers\nRuntime/Admin/System to Channel SPI--><path d="M581.84,203.61 C476.69,209.23 310.74,221.1 252,242 C227.18,250.83 202.45,267.8 185.04,281.44 " fill="none" id="Controllers\nRuntime/Admin/System-&gt;Channel SPI" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="180.78,284.83,190.3133,282.3567,184.6927,281.717,185.3324,276.0964,180.78,284.83" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[49c9bef4fbd6529b68a4249ecb047fe8]
+link Controllers\nRuntime/Admin/System to Visit SPI--><path d="M606.46,225.02 C592.99,230.44 578.98,236.27 566,242 C537.17,254.74 505.19,270.38 481.07,282.51 " fill="none" id="Controllers\nRuntime/Admin/System-&gt;Visit SPI" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="476.35,284.88,486.1881,284.4202,480.8193,282.6382,482.6013,277.2694,476.35,284.88" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[16a7accd18730ec076f4d73ff36be7e1]
+link Visit SPI to VisitManager/Custom/Mock clients--><path d="M435.81,321.03 C427.86,339.88 415.02,370.31 406.3,390.96 " fill="none" id="Visit SPI-&gt;VisitManager/Custom/Mock clients" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="404.29,395.73,411.4691,388.9875,406.2303,391.1218,404.096,385.8831,404.29,395.73" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[139c642b94a6c419d16540b15309fcfe]
+link Channel SPI to Adapters--><path d="M161,321.03 C161,339.8 161,370.05 161,390.7 " fill="none" id="Channel SPI-&gt;Adapters" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="161,395.73,165,386.73,161,390.73,157,386.73,161,395.73" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[f4a39930816a2bfc1f0a83c20dc1db01]
+@startuml
+top to bottom direction
+skinparam packageStyle rectangle
+
+package "client-journey-app" {
+  [Controllers\nRuntime/Admin/System]
+  [Security Filters\nApiKey/RateLimit]
+  [Service Layer]
+}
+
+package "client-journey-core" {
+  [ScenarioEngine]
+}
+
+package "client-journey-domain" {
+  [Scenario/Graph/Node models]
+}
+
+package "client-journey-storage-*" {
+  [Storage SPI]
+  [File/H2/Postgres impl]
+}
+
+package "client-journey-channel-*" {
+  [Channel SPI]
+  [Adapters]
+}
+
+package "client-journey-visit-*" {
+  [Visit SPI]
+  [VisitManager/Custom/Mock clients]
+}
+
+[Controllers\nRuntime/Admin/System] - -> [Service Layer]
+[Security Filters\nApiKey/RateLimit] - -> [Controllers\nRuntime/Admin/System]
+[Service Layer] - -> [ScenarioEngine]
+[ScenarioEngine] - -> [Scenario/Graph/Node models]
+[Service Layer] - -> [Storage SPI]
+[Storage SPI] - -> [File/H2/Postgres impl]
+[Controllers\nRuntime/Admin/System] - -> [Channel SPI]
+[Controllers\nRuntime/Admin/System] - -> [Visit SPI]
+[Visit SPI] - -> [VisitManager/Custom/Mock clients]
+[Channel SPI] - -> [Adapters]
+@enduml
+
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
+(GPL source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Java Version: 21.0.2+13-58
+Operating System: Linux
+Default Encoding: UTF-8
+Language: en
+Country: null
+--></g></svg>

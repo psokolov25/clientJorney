@@ -18,19 +18,19 @@ public class AdminScenarioGraphController {
         this.scenarioGraphService = scenarioGraphService;
     }
 
-    @Operation(summary = "Get scenario graph")
+    @Operation(summary = "Получить граф сценария")
     @Get("/graph")
     public ScenarioGraph getGraph(UUID id) {
         return scenarioGraphService.getGraph(id);
     }
 
-    @Operation(summary = "Save scenario graph")
+    @Operation(summary = "Сохранить граф сценария")
     @Put("/graph")
     public ScenarioGraph putGraph(UUID id, @Body ScenarioGraph graph) {
         return scenarioGraphService.saveGraph(id, graph);
     }
 
-    @Operation(summary = "Validate scenario graph")
+    @Operation(summary = "Проверить граф сценария")
     @Post("/validate")
     public GraphValidationResult validate(UUID id) {
         return scenarioGraphService.validateGraph(id);

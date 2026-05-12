@@ -13,9 +13,29 @@ micronaut:
         mapping: /widget/**
         paths:
           - classpath:public/widget
+      swagger:
+        enabled: true
+        mapping: /swagger/**
+        paths:
+          - classpath:META-INF/swagger
+
+swagger-ui:
+  enabled: true
+  path: /swagger-ui
+
+redoc:
+  enabled: true
+  path: /redoc
 
 client-journey:
   storage:
     type: ${CLIENT_JOURNEY_STORAGE_TYPE:file}
   visit:
     client: ${CLIENT_JOURNEY_VISIT_CLIENT:dry-run}
+
+
+# Observability dependency degradation indicators
+clientjourney.observability.dependency.visit-provider-status: ${CJ_OBS_VISIT_PROVIDER_STATUS:UP}
+clientjourney.observability.dependency.storage-status: ${CJ_OBS_STORAGE_STATUS:UP}
+clientjourney.observability.dependency.storage-latency-ms: ${CJ_OBS_STORAGE_LATENCY_MS:0}
+clientjourney.observability.dependency.storage-latency-warn-threshold-ms: ${CJ_OBS_STORAGE_LATENCY_WARN_MS:200}

@@ -1,14 +1,74 @@
 # Client Journey Platform
 
-Промышленный стартовый проект для визуального конструирования клиентских путей/опросников, интегрируемых с СУО.
+![Java](https://img.shields.io/badge/Java-21-blue)
+![Micronaut](https://img.shields.io/badge/Micronaut-4.x-1f6feb)
+![Build](https://img.shields.io/badge/build-maven-success)
+![License](https://img.shields.io/badge/license-Internal-lightgrey)
 
-## Архитектурное решение
+Промышленный стартовый проект для визуального конструирования клиентских путей/опросников с embedded Admin UI и Chat UI, единым runtime/admin API и интеграцией с внешними системами СУО/очередей.
 
-Границы системы: единое Micronaut-приложение предоставляет Admin UI, Web Chat Widget, REST runtime/admin API, WebSocket endpoint, channel adapters, storage implementations и VisitCreation clients. Внешние системы: VisitManager REST API, другие СУО через `VisitCreationClient`, Kafka, Telegram Bot API polling, официальные WhatsApp/MAX/Facebook-провайдеры.
+## Оглавление
+- [1. Обзор](#1-обзор)
+- [2. Ключевые возможности](#2-ключевые-возможности)
+- [3. Архитектура](#3-архитектура)
+- [3.1 Диаграммы (PlantUML + SVG)](#31-диаграммы-plantuml--svg)
+- [4. Структура репозитория](#4-структура-репозитория)
+- [5. Требования к окружению](#5-требования-к-окружению)
+- [6. Быстрый старт](#6-быстрый-старт)
+- [7. Конфигурация и профили](#7-конфигурация-и-профили)
+- [8. API-обзор](#8-api-обзор)
+- [9. Embedded frontend](#9-embedded-frontend)
+- [10. Тестирование и качество](#10-тестирование-и-качество)
+- [11. Эксплуатация (security/observability)](#11-эксплуатация-securityobservability)
+- [12. Лучшие практики для контрибьюторов](#12-лучшие-практики-для-контрибьюторов)
+- [13. Ограничения и roadmap](#13-ограничения-и-roadmap)
 
-Главный принцип: маршрутизация не реализуется в каналах. Все каналы преобразуют вход в `ClientInputMessage`, вызывают `ScenarioEngine` и возвращают `ClientOutputMessage`.
+## 1. Обзор
 
-## Модули
+Система построена как модульный monorepo с одним исполняемым Micronaut-приложением (`client-journey-app`) и набором подключаемых модулей: хранилища, канальные адаптеры и клиенты создания визита.
+
+**Главный принцип:** каналы не реализуют логику маршрутизации — они только маппят сообщения в SPI-контракты (`ClientInputMessage`/`ClientOutputMessage`), а бизнес-логика исполнения маршрутов находится в ядре (`ScenarioEngine`).
+
+## 2. Ключевые возможности
+
+- Единый runtime/admin API и WebSocket runtime endpoint.
+- Embedded Admin UI и Chat UI (без отдельного frontend-сервера в production).
+- SPI-архитектура для storage/channel/visit-creation.
+- Поддержка file/H2/PostgreSQL хранилищ.
+- Интеграция с VisitManager и кастомными REST-провайдерами создания визитов.
+- Расширенная наблюдаемость (`health/readiness/liveness/dashboard`) и API ошибок.
+- Security baseline: API key, rate limiting, PII masking, OIDC-ready конфигурация.
+
+## 3. Архитектура
+
+Границы системы:
+- `client-journey-app` — HTTP API, websocket, embedded static frontend.
+- `client-journey-core` — исполнение сценариев и route-logic.
+- `client-journey-domain` — доменные модели.
+- `client-journey-storage-*` — реализации репозиториев.
+- `client-journey-channel-*` — адаптеры каналов.
+- `client-journey-visit-*` — клиенты создания визитов.
+
+Внешние зависимости: VisitManager REST API, Kafka, Telegram Bot API polling, и официальные провайдеры мессенджеров.
+
+
+
+### 3.1 Диаграммы (PlantUML + SVG)
+
+> Исходники диаграмм хранятся в `docs/diagrams/src/*.puml`,
+> а текстовые SVG-рендеры — в `docs/diagrams/svg/*.svg`.
+
+#### System context
+
+- Исходник: `docs/diagrams/src/system-context.puml`
+- SVG-рендер (`docs/diagrams/svg/system-context.svg`) хранится в репозитории и обновляется при изменениях диаграммы.
+
+#### Module containers
+
+- Исходник: `docs/diagrams/src/module-containers.puml`
+- SVG-рендер (`docs/diagrams/svg/module-containers.svg`) хранится в репозитории и обновляется при изменениях диаграммы.
+
+## 4. Структура репозитория
 
 ```text
 client-journey-domain
@@ -22,89 +82,63 @@ client-journey-visit-spi
 client-journey-visit-visitmanager
 client-journey-visit-custom-rest
 client-journey-visit-mock
-client-journey-frontend
 client-journey-app
+project-management/
+docs/
+tests/frontend/
 ```
 
-## Embedded frontend
+## 5. Требования к окружению
 
-React + TypeScript используется как build-module. В production нет отдельного frontend-сервера. Vite собирает:
-- `target/dist/admin`;
-- `target/dist/widget`.
+- JDK 21+
+- Maven 3.9+
+- Node.js 20+ (для frontend e2e)
+- npm 10+
+- (опционально) Docker / Docker Compose
 
-`client-journey-app` копирует assets в `classpath:public/admin` и `classpath:public/widget`.
+## 6. Быстрый старт
 
-Production endpoints:
+### Сборка
 
-```text
-/admin/**
-/widget/client-journey-widget.js
-/widget/client-journey-widget.css
-/api/**
-/ws/runtime
-/swagger-ui/**
+```bash
+./mvnw clean package
 ```
 
-## Storage architecture
+### Запуск (file profile)
 
-`ScenarioRepository`, `ScenarioGraphRepository`, `ConversationSessionRepository`, `ConversationAnswerRepository`, `VisitCreationAttemptRepository`, `VisitCreationSettingsRepository` находятся в SPI.
-
-Реализации:
-- file storage: рабочая MVP-реализация, JSON, atomic write, backup-on-write, corrupted directory, single-node;
-- H2: JDBC/JSON repository-реализации, Flyway migration, PostgreSQL compatibility mode, local/demo/test;
-- PostgreSQL: JDBC/JSONB repository-реализации, Flyway migration, production-профиль.
-
-## Visit creation SPI
-
-`VisitCreationOrchestrator` выполняет:
-1. загрузку `VisitCreationSettings`;
-2. сбор `VisitCreationRequest`;
-3. выбор `VisitCreationClient`;
-4. retry loop;
-5. сохранение `VisitCreationAttempt`;
-6. возврат `VisitCreationResult`.
-
-Клиенты:
-- `VisitManagerVisitCreationClient`;
-- `CustomRestVisitCreationClient`;
-- `MockVisitCreationClient`;
-- `DryRunVisitCreationClient`.
-
-## VisitManager integration
-
-MVP реализует основной каноничный режим:
-
-```http
-POST /entrypoint/branches/{branchId}/entry-points/{entryPointId}/visits/parameters?printTicket={printTicket}&segmentationRuleId={segmentationRuleId}
+```bash
+java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app.jar
 ```
 
-Body:
+### Запуск (postgres profile)
 
-```json
-{
-  "serviceIds": ["c3916e7f-7bea-4490-b9d1-0d4064adbe8b"],
-  "parameters": {
-    "clientJourney.sessionId": "uuid",
-    "clientJourney.scenarioCode": "medical-registration",
-    "clientJourney.channel": "WEB_CHAT"
-  }
-}
+```bash
+java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app.jar
 ```
 
-Остальные каноничные режимы заложены в enum/config и должны быть добавлены без изменения ядра:
-- `ENTRYPOINT_SERVICE_IDS_ONLY`;
-- `RECEPTION_PRINTER_WITH_PARAMETERS`;
-- `VIRTUAL_VISIT`;
-- `CREATE_THEN_UPDATE_PARAMETERS`.
+## 7. Конфигурация и профили
 
-## Runtime REST API
+Основные файлы:
+- `client-journey-app/src/main/resources/application.yml`
+- `application-file.yml`
+- `application-h2.yml`
+- `application-postgres.yml`
+
+Рекомендуемые практики:
+- Хранить секреты только через переменные окружения/secret manager.
+- Разделять конфигурации dev/stage/prod через профили и overlays.
+- Для rate-limit и security policy использовать явные значения per-endpoint.
+
+## 8. API-обзор
+
+### Runtime API
 
 ```http
 POST /api/runtime/scenarios/{scenarioCode}/sessions
 POST /api/runtime/sessions/{sessionId}/answers
 ```
 
-## Admin REST API
+### Admin API
 
 ```http
 GET    /api/admin/scenarios
@@ -125,235 +159,82 @@ POST   /api/admin/scenarios/import
 GET    /api/admin/scenarios/{id}/export
 ```
 
-## Быстрый старт
+## 9. Embedded frontend
+
+Production endpoints:
+
+```text
+/
+/admin/**
+/chat/**
+/api/**
+/ws/runtime
+/swagger-ui/**
+```
+
+Frontend тесты и детали описаны в `FRONTEND-TESTING.md`.
+
+WebGUI отдается основным backend-сервером Micronaut (без отдельного frontend-сервера в production).
+
+## 10. Тестирование и качество
+
+### Быстрый запуск unit-тестов
 
 ```bash
-./mvnw clean package
-java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app.jar
+./mvnw -DskipITs test
 ```
 
-Windows:
-
-```bat
-mvnw.cmd clean package
-java -Dmicronaut.environments=file -jar client-journey-app\target\client-journey-app.jar
-```
-
-## REST пример
+### Backend
 
 ```bash
-curl -X POST http://localhost:8080/api/admin/scenarios \
-  -H "Content-Type: application/json" \
-  -d "{\"code\":\"medical-registration\",\"name\":\"Регистрация в клинике\"}"
+./mvnw -pl client-journey-app -am test
 ```
+
+### Frontend e2e
 
 ```bash
-curl -X POST http://localhost:8080/api/runtime/scenarios/medical-registration/sessions \
-  -H "Content-Type: application/json" \
-  -d "{\"channel\":\"REST\",\"externalUserId\":\"client-123\",\"metadata\":{\"source\":\"test\"}}"
+npm ci
+npm run frontend:test
 ```
 
-```bash
-curl -X POST http://localhost:8080/api/runtime/sessions/{sessionId}/answers \
-  -H "Content-Type: application/json" \
-  -d "{\"answerCode\":\"doctor\",\"answerValue\":\"doctor\"}"
-```
+### Рекомендации
 
-## Web widget
+- Для новых API добавлять unit + controller tests.
+- Для cross-layer изменений добавлять архитектурные тесты.
+- Для пользовательских сценариев UI — Playwright smoke/integration тесты.
 
-```html
-<script src="https://host/widget/client-journey-widget.js"></script>
-<script>
-  ClientJourneyWidget.init({
-    scenarioCode: "medical-registration",
-    apiBaseUrl: "https://host/api",
-    theme: {
-      primaryColor: "#0057B8",
-      accentColor: "#00AEEF",
-      title: "Электронная очередь"
-    }
-  });
-</script>
-```
+## 11. Эксплуатация (security/observability)
 
-## Риски и ограничения MVP
+### Логирование
 
-1. File storage — рабочий single-node режим.
-2. H2/PostgreSQL реализованы через JDBC CRUD; для большой нагрузки нужно добавить миграционные тесты на реальном PostgreSQL и pool tuning.
-3. Kafka/Telegram/WebSocket/WhatsApp/MAX/Facebook — adapter skeletons; Telegram polling и Kafka consumer/producer нужно довести до промышленной обработки update/message offsets.
-4. VisitManager реализует каноничные режимы `ENTRYPOINT_WITH_PARAMETERS`, `ENTRYPOINT_SERVICE_IDS_ONLY`, `CREATE_THEN_UPDATE_PARAMETERS`, `RECEPTION_PRINTER_WITH_PARAMETERS`, `VIRTUAL_VISIT`. Основной режим по умолчанию — `ENTRYPOINT_WITH_PARAMETERS`.
-5. WhatsApp/MAX/Facebook не используют неофициальные API.
-6. Maven wrapper в архиве — shim на установленный Maven; перед production нужно заменить на официальный wrapper.
+В приложении используется `logback.xml` с гибкой настройкой:
+- отдельные аппендеры: `CONSOLE`, `APP_FILE`, `SECURITY_FILE`, `AUDIT_FILE`;
+- ротация по времени и размеру (`SizeAndTimeBasedRollingPolicy`);
+- лимиты объема архива (`totalSizeCap`) и срока хранения (`maxHistory`) по каждому потоку логов;
+- независимые уровни логирования по пакетам (`com.clientjourney`, `com.clientjourney.app.security`, `com.clientjourney.app.admin`).
+
+Основные переменные окружения:
+- `LOG_DIR`, `ROOT_LOG_LEVEL`, `APP_LOG_LEVEL`, `SECURITY_LOG_LEVEL`, `AUDIT_LOG_LEVEL`;
+- `APP_MAX_FILE_SIZE`, `APP_MAX_HISTORY_DAYS`, `APP_TOTAL_SIZE_CAP`;
+- `SEC_MAX_FILE_SIZE`, `SEC_MAX_HISTORY_DAYS`, `SEC_TOTAL_SIZE_CAP`;
+- `AUDIT_MAX_FILE_SIZE`, `AUDIT_MAX_HISTORY_DAYS`, `AUDIT_TOTAL_SIZE_CAP`.
 
 
-## Второй этап текущего архива
+- Security: API key фильтр, rate limiting, policy endpoint, masking PII.
+- Observability: `health/readiness/liveness/dashboard`, базовые метрики и диагностические payload.
+- Runtime ошибки унифицированы через `ApiExceptionHandler`/`ApiErrorResponse`.
 
-В архив добавлена практическая доработка MVP:
+## 12. Лучшие практики для контрибьюторов
 
-- реальные JDBC repository для H2 и PostgreSQL;
-- отдельные Flyway migration locations для H2/common и PostgreSQL/JSONB;
-- расширенная валидация графа: duplicate ids, недостижимые узлы, тупики, отсутствие выхода в RESULT;
-- `QuestionResolver`, `AnswerProcessor`, `ConversationSessionService`;
-- расширенный `VisitParameterMapper`: `FLAT_PARAMETERS`, `COMPACT_JSON_PARAMETER`, mask email/phone, truncate/reject/store-reference-only;
-- `VisitManagerVisitCreationClient` с поддержкой всех каноничных режимов из конфигурации;
-- `VisitManagerServiceCatalogClient` и endpoint `GET /api/admin/visit-manager/services`;
-- базовый `CustomRestVisitCreationClient` с HTTP method, headers, query parameters, bearer/basic/staticHeader auth, payload template и простым `$.field` response mapping;
-- Maven dependencyManagement для внутренних модулей;
-- shade packaging единого runnable jar;
-- закреплены frontend-зависимости вместо `latest`;
-- добавлены unit-test заготовки для graph validation и VisitManager parameter mapper.
+- Делать маленькие PR с чёткой целью (1 тема = 1 PR).
+- Обновлять `project-management/backlog.md` и `project-management/implementation-plan.md` вместе с функциональными изменениями.
+- Не смешивать refactor и feature без необходимости.
+- Для публичных контрактов (DTO/API/SPI) обязательно добавлять тесты на обратную совместимость.
+- Документировать операционные изменения (конфиги, лимиты, флаги).
 
-### Каталог услуг VisitManager
+## 13. Ограничения и roadmap
 
-```bash
-curl "http://localhost:8080/api/admin/visit-manager/services?baseUrl=http://visitmanager:8080&branchId=37493d1c-8282-4417-a729-dceac1f3e2b4&scope=all"
-```
-
-`scope=all` используется для настройки сценариев, `scope=available` — для выбора только доступных услуг.
-
-### PostgreSQL profile
-
-```bash
-java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app.jar
-```
-
-PostgreSQL migration использует JSONB для graph, settings, attempts, channel messages и widget themes.
-
-## План работ (roadmap реализации)
-
-### Sprint 0 — Baseline и контроль архитектурных ограничений (1–2 дня)
-1. Зафиксировать архитектурные decision records (ADR):
-   - embedded frontend only;
-   - единое ядро ScenarioEngine;
-   - VisitCreationClient SPI;
-   - storage switch via Micronaut `@Requires`.
-2. Подтвердить boundaries и anti-corruption layer для внешних систем (VisitManager/другие СУО).
-3. Настроить quality gates:
-   - Checkstyle/SpotBugs/PMD;
-   - unit/integration test profile;
-   - архитектурные тесты на отсутствие циклических зависимостей.
-
-### Sprint 1 — Каркас multi-module + единый runnable app (3–5 дней)
-1. Создать/доработать Maven multi-module структуру.
-2. Настроить `dependencyManagement`, версии плагинов, BOM.
-3. Подключить frontend build-module (React + TypeScript + Vite) и копирование статики в `client-journey-app`.
-4. Настроить упаковку single runnable jar (shade или аналог).
-5. Подготовить `application.yml`, `application-file.yml`, `application-h2.yml`, `application-postgres.yml`.
-
-**Definition of Done:** `./mvnw clean package` собирает backend + frontend и формирует единый артефакт.
-
-### Sprint 2 — Domain/Core + Runtime MVP (5–7 дней)
-1. Доменная модель: `Scenario`, `ScenarioGraph`, `Node`, `QuestionNode`, `ResultNode`, `ServiceRef`, `ConversationSession`, `ConversationAnswer`.
-2. Ядро:
-   - `ScenarioEngine`;
-   - `QuestionResolver`;
-   - `AnswerProcessor`;
-   - `ConversationSessionService`.
-3. Runtime API:
-   - `POST /api/runtime/scenarios/{scenarioCode}/sessions`;
-   - `POST /api/runtime/sessions/{sessionId}/answers`.
-4. Единые DTO `ClientInputMessage`/`ClientOutputMessage`.
-
-**Definition of Done:** REST-клиент проходит сценарий до `RESULT`, формируется корректный финальный ответ.
-
-### Sprint 3 — RouteValidation + Admin API (5–7 дней)
-1. Реализовать `RouteValidationService` с полным списком проверок графа.
-2. Реализовать CRUD сценариев и графа.
-3. Реализовать publish/archive/clone-version + запрет публикации невалидного графа.
-4. Реализовать import/export JSON.
-5. Подключить OpenAPI/Swagger.
-
-**Definition of Done:** админ может создать/провалидировать/опубликовать сценарий через API.
-
-### Sprint 4 — Storage SPI + File storage (4–6 дней)
-1. Выделить SPI-репозитории.
-2. Реализовать file storage:
-   - atomic write;
-   - backup-on-write;
-   - обработка corrupted JSON;
-   - single-node safety constraints.
-3. Покрыть тестами file repositories.
-
-**Definition of Done:** приложение стабильно работает в профиле `file` на полном runtime/admin флоу.
-
-### Sprint 5 — H2/PostgreSQL + Flyway (5–8 дней)
-1. Реализовать JDBC repositories для H2/PostgreSQL.
-2. Подготовить миграции:
-   - `db/migration/common` (H2);
-   - `db/migration/postgres` (JSONB).
-3. Добавить индексы и проверить планы выполнения для ключевых запросов.
-4. Интеграционные тесты с H2 и PostgreSQL.
-
-**Definition of Done:** профили `h2` и `postgres` проходят тестовый набор и запускаются без ручных правок.
-
-### Sprint 6 — Visit Creation Subdomain (6–9 дней)
-1. Реализовать `VisitCreationOrchestrator`.
-2. Реализовать `VisitManagerVisitCreationClient` с каноничными режимами:
-   - `ENTRYPOINT_WITH_PARAMETERS` (default);
-   - `ENTRYPOINT_SERVICE_IDS_ONLY`;
-   - `CREATE_THEN_UPDATE_PARAMETERS`;
-   - `RECEPTION_PRINTER_WITH_PARAMETERS`;
-   - `VIRTUAL_VISIT`.
-3. Реализовать `VisitParameterMapper`:
-   - `FLAT_PARAMETERS`;
-   - `COMPACT_JSON_PARAMETER`;
-   - PII masking;
-   - long-value strategies.
-4. Реализовать `CustomRestVisitCreationClient` (generic, конфигурируемый).
-5. Реализовать `Mock/DryRun` клиенты.
-
-**Definition of Done:** финал сценария создаёт визит или возвращает контролируемый результат dry-run/error.
-
-### Sprint 7 — Channel adapters (skeleton → production-ready path) (5–8 дней)
-1. WebSocket runtime skeleton `/ws/runtime`.
-2. Kafka adapter skeleton (input/output/events/DLQ + idempotency contract).
-3. Telegram polling skeleton (/start, /cancel, /restart).
-4. WhatsApp/MAX/Facebook — только официально-совместимые адаптерные точки + mock.
-
-**Definition of Done:** каналы подключаются к одному ядру без дублирования бизнес-логики.
-
-### Sprint 8 — Frontend Admin + Widget MVP (7–12 дней)
-1. Admin UI:
-   - список сценариев;
-   - карточка сценария;
-   - graph editor skeleton (React Flow);
-   - validation panel;
-   - visit-creation settings.
-2. Widget MVP:
-   - bootstrap script;
-   - чат-окно;
-   - вопросы/ответы;
-   - отображение результата/ошибок.
-3. Встроенная отдача статики через Micronaut `/admin/**` и `/widget/**`.
-
-**Definition of Done:** админ через UI создаёт маршрут, клиент проходит его через widget.
-
-### Sprint 9 — Observability, Security, Docs, Delivery (5–8 дней)
-1. Structured logging + correlationId.
-2. Micrometer метрики, health/readiness/liveness.
-3. Security baseline:
-   - роли ADMIN/DESIGNER/VIEWER/RUNTIME_CLIENT;
-   - CORS для widget;
-   - rate limiting runtime API;
-   - masking токенов/sid/PII.
-4. Dockerfile и docker-compose (без frontend-контейнера).
-5. Полный пакет документации + PlantUML диаграммы.
-
-**Definition of Done:** воспроизводимый запуск в Docker, документация покрывает разработку и эксплуатацию.
-
-### Критический путь и зависимости
-1. Сначала: multi-module build + embedded frontend pipeline.
-2. Затем: domain/core/runtime/admin validation.
-3. Затем: storage + visit creation.
-4. После: channels + UI/widget hardening.
-5. Финал: observability/security/perf + docs.
-
-### Риски и меры
-- **Риск:** расползание логики по адаптерам.  
-  **Мера:** контракты `ClientInputMessage`/`ClientOutputMessage`, code owners для core.
-- **Риск:** несовместимости H2/PostgreSQL JSON/JSONB.  
-  **Мера:** двойной набор integration tests и отдельные migration locations.
-- **Риск:** vendor lock-in на VisitManager.  
-  **Мера:** обязательный путь через `VisitCreationClient` SPI, contract tests для custom clients.
-- **Риск:** деградация UX редактора графа.  
-  **Мера:** frontend e2e smoke + snapshot tests на ключевые сценарии.
+- Часть channel adapters пока в skeleton-режиме (integration-ready, но без полного production-runtime).
+- Требуются дополнительные end-to-end интеграции с реальными внешними API и устойчивые нагрузочные прогоны.
+- Roadmap и спринты ведутся в `project-management/`.
+- Runbook по подключению channel providers: `docs/CHANNEL-PROVIDER-RUNBOOK.md`.

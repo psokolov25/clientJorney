@@ -21,32 +21,32 @@ public class AdminScenarioController {
         this.scenarioService = scenarioService;
     }
 
-    @Operation(summary = "List scenarios")
+    @Operation(summary = "Список сценариев")
     @Get
     public List<Scenario> findAll() {
         return scenarioService.findAll();
     }
 
-    @Operation(summary = "Create scenario")
+    @Operation(summary = "Создать сценарий")
     @Post
     @Status(HttpStatus.CREATED)
     public Scenario create(@Body CreateScenarioRequest request) {
         return scenarioService.create(request);
     }
 
-    @Operation(summary = "Get scenario by id")
+    @Operation(summary = "Получить сценарий по id")
     @Get("/{id}")
     public Scenario findById(UUID id) {
         return scenarioService.findById(id);
     }
 
-    @Operation(summary = "Update scenario")
+    @Operation(summary = "Обновить сценарий")
     @Put("/{id}")
     public Scenario update(UUID id, @Body UpdateScenarioRequest request) {
         return scenarioService.update(id, request);
     }
 
-    @Operation(summary = "Delete scenario")
+    @Operation(summary = "Удалить сценарий")
     @Delete("/{id}")
     @Status(HttpStatus.NO_CONTENT)
     public void delete(UUID id) {

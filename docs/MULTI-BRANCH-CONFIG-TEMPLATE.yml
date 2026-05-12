@@ -1,0 +1,9 @@
+visitCreationSettings:
+  mode: PER_BRANCH_SERVER
+  defaultBaseUrl: http://visitmanager-default:8080
+  branchBaseUrls:
+    north: http://visitmanager-north:8080
+    south: http://visitmanager-south:8080
+    "*": http://visitmanager-default:8080
+  options:
+    branchSelectionTiming: BEFORE
