@@ -90,7 +90,7 @@ tests/frontend/
 
 ## 5. Требования к окружению
 
-- JDK 21+
+- JDK 17+
 - Maven 3.9+
 - Node.js 20+ (для frontend e2e)
 - npm 10+
@@ -107,13 +107,40 @@ tests/frontend/
 ### Запуск (file profile)
 
 ```bash
-java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app.jar
+JAR=$(ls client-journey-app/target/client-journey-app-*-all.jar | head -n 1)
+java -Dmicronaut.environments=file -jar "$JAR"
+```
+
+Для Windows PowerShell используйте тот же аргумент без пробела после `-D`:
+
+```powershell
+$jar = (Get-ChildItem client-journey-app/target/client-journey-app-*-all.jar | Select-Object -First 1).FullName
+java "-Dmicronaut.environments=file" -jar $jar
 ```
 
 ### Запуск (postgres profile)
 
 ```bash
-java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app.jar
+JAR=$(ls client-journey-app/target/client-journey-app-*-all.jar | head -n 1)
+java -Dmicronaut.environments=postgres -jar "$JAR"
+```
+
+Если jar ещё не собран, сначала выполните:
+
+```bash
+./mvnw clean package
+```
+
+Проверить фактическое имя артефакта можно так:
+
+```bash
+ls client-journey-app/target/client-journey-app-*-all.jar
+```
+
+PowerShell:
+
+```powershell
+Get-ChildItem client-journey-app/target/client-journey-app-*-all.jar
 ```
 
 ## 7. Конфигурация и профили
