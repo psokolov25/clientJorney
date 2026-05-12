@@ -1,5 +1,11 @@
 # Дорожная карта
 
+## Фаза 0 — Редактор клиентского пути (немедленный фокус)
+- Замена текущего canvas-демо на полноценный graph editor UX
+- Ветвящиеся цепочки QUESTION → answer options → QUESTION/RESULT без ручного JSON
+- Валидации графа и предпросмотр маршрута до публикации
+- Технологический baseline: React Flow (рекомендация после исследования)
+
 ## Фаза 1 — MVP (Q2–Q3 2026)
 - Единое Micronaut-приложение (embedded frontend)
 - Admin REST API + Runtime REST API
@@ -27,3 +33,7 @@
 - E2E-проверки branch-aware запусков и visit-creation dry-run
 
 - Добавлены шаблоны `docker-compose.adapters-smoke.yml` и `docs/MULTI-BRANCH-CONFIG-TEMPLATE.yml` для smoke и multi-branch baseline
+
+- Детализированный план развития skeleton-компонентов: `project-management/flesh-out-plan.md` (приоритет: Telegram → Web Chat (white-label) → остальные каналы)
+
+- Сравнение библиотек для graph editor: `project-management/graph-editor-libraries-review.md`
