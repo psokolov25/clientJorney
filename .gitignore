@@ -1,3 +1,13 @@
-
 # Build output
 **/target/
+
+# Frontend test tooling
+node_modules/
+playwright-report/
+test-results/
+
+# do not commit generated screenshots
+project-management/screenshots/*.png
+
+# Generated diagram renders
+docs/diagrams/svg/*.svg

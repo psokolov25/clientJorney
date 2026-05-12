@@ -19,3 +19,11 @@
 - Полноценные миграции и индексы
 - Продвинутые тесты (integration/e2e)
 - Документация по деплою и операционным процедурам
+
+## Фаза 4 — Integration-ready каналы и операционная устойчивость (Q4 2026)
+- Завершение официальных adapter-baseline для WhatsApp/MAX/Facebook
+- Подписи webhook и политика ретраев/идемпотентности
+- Расширенная диагностика деградаций внешних зависимостей
+- E2E-проверки branch-aware запусков и visit-creation dry-run
+
+- Добавлены шаблоны `docker-compose.adapters-smoke.yml` и `docs/MULTI-BRANCH-CONFIG-TEMPLATE.yml` для smoke и multi-branch baseline

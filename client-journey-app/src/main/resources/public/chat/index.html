@@ -1,19 +1,133 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Client Journey Chat</title></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Journey Chat</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; background: #f5f7fb; margin: 0; color: #1d2636; }
+    .app { max-width: 760px; margin: 24px auto; background: #fff; border: 1px solid #e2e6ef; border-radius: 12px; overflow: hidden; }
+    header { padding: 14px 16px; border-bottom: 1px solid #e2e6ef; display:flex; justify-content:space-between; align-items:center; }
+    #messages { height: 420px; overflow: auto; padding: 14px; background: #f9fbff; }
+    .msg { margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; max-width: 75%; }
+    .bot { background: #e9f1ff; }
+    .me { margin-left: auto; background: #daf4e4; }
+    .controls { padding: 12px 14px; border-top: 1px solid #e2e6ef; }
+    .grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+    input, select, button { border:1px solid #c8d2e3; border-radius:8px; padding:8px; font-size:14px; }
+    button { background:#165dff; color:white; border:0; cursor:pointer; }
+    .row { display:grid; grid-template-columns: 1fr auto; gap:8px; }
+  </style>
+</head>
 <body>
-  <h2 id="welcome"></h2>
-  <p id="hint"></p>
-  <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
-  <script>
-    async function loadLocale(locale){
-      const messages=await fetch(`/chat/i18n/${locale}.json`).then(r=>r.json());
-      document.getElementById('welcome').textContent=messages.welcome;
-      document.getElementById('hint').textContent=messages.hint;
+<div class="app">
+  <header>
+    <div>
+      <h2 id="welcome" style="margin:0"></h2>
+      <small id="hint"></small>
+    </div>
+    <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
+  </header>
+  <div class="controls">
+    <div class="grid">
+      <input id="scenarioCode" placeholder="scenario code" value="medical-registration">
+      <input id="branchId" placeholder="branch id" value="north">
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+  <div id="messages"></div>
+  <div class="controls">
+    <div class="row">
+      <input id="answerCode" placeholder="answer code">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const messages = document.getElementById('messages');
+  let sessionId = null;
+  const mCache = {};
+  let branchMode = "BEFORE";
+
+  function addMessage(text, cls='bot') {
+    const el = document.createElement('div');
+    el.className = `msg ${cls}`;
+    el.textContent = text;
+    messages.appendChild(el);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  async function loadLocale(locale){
+    const m = await fetch(`/chat/i18n/${locale}.json`).then(r=>r.json());
+    document.getElementById('welcome').textContent = m.welcome;
+    document.getElementById('hint').textContent = m.hint;
+    document.getElementById('startBtn').textContent = m.start;
+    document.getElementById('sendBtn').textContent = m.send;
+    Object.assign(mCache, m);
+    document.getElementById('branchId').placeholder = m.branchPlaceholder;
+    document.getElementById('answerCode').placeholder = m.answerPlaceholder;
+  }
+
+  async function loadBranchConfig() {
+    const scenarioCode = document.getElementById('scenarioCode').value.trim();
+    try {
+      const res = await fetch(`/api/runtime/scenarios/${scenarioCode}/branch-selection-config`);
+      if (!res.ok) return;
+      const cfg = await res.json();
+      branchMode = cfg.mode || 'BEFORE';
+      if ((cfg.branches || []).length === 1) {
+        document.getElementById('branchId').value = cfg.branches[0];
+      }
+      document.getElementById('branchId').disabled = branchMode === 'NONE';
+    } catch {}
+  }
+
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    const scenarioCode = document.getElementById('scenarioCode').value.trim();
+    const branchId = document.getElementById('branchId').value.trim();
+    if (branchMode === 'BEFORE' && !branchId) return addMessage(mCache.branchRequired || 'Select branch first');
+    const channel = 'WEB_CHAT';
+    const response = await fetch(`/api/runtime/scenarios/${scenarioCode}/sessions`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ channel, externalUserId: `web-${Date.now()}`, metadata: { source: 'embedded-chat', branchId: branchMode === 'AFTER' ? '' : branchId } })
+    });
+    if (!response.ok) {
+      let errText = `Start failed: ${response.status}`;
+      try { const err = await response.json(); errText = `${mCache.errorPrefix}: ${err.message || errText}`; } catch {}
+      return addMessage(errText);
     }
-    const localeSel=document.getElementById('locale');
-    localeSel.addEventListener('change',()=>loadLocale(localeSel.value));
-    loadLocale('en');
-  </script>
+    const data = await response.json();
+    sessionId = data.sessionId;
+    if (branchMode !== 'AFTER') addMessage(`${mCache.branchSelected || 'Branch'}: ${branchId}`);
+    addMessage(`Session started: ${sessionId}`);
+    if (data.questionText) addMessage(data.questionText);
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', async () => {
+    const answerCode = document.getElementById('answerCode').value.trim();
+    if (!sessionId || !answerCode) return;
+    addMessage(answerCode, 'me');
+    const response = await fetch(`/api/runtime/sessions/${sessionId}/answers`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ answerCode, answerValue: answerCode })
+    });
+    if (!response.ok) {
+      let errText = `Send failed: ${response.status}`;
+      try { const err = await response.json(); errText = `${mCache.errorPrefix}: ${err.message || errText}`; } catch {}
+      return addMessage(errText);
+    }
+    const data = await response.json();
+    if (data.outputMessages && data.outputMessages.length) {
+      data.outputMessages.forEach(m => addMessage(m.text || JSON.stringify(m)));
+    }
+    if (data.questionText) addMessage(data.questionText);
+  });
+
+  document.getElementById('scenarioCode').addEventListener('change', loadBranchConfig);
+  document.getElementById('locale').addEventListener('change', e => loadLocale(e.target.value));
+  loadLocale('en');
+  loadBranchConfig();
+</script>
 </body>
 </html>

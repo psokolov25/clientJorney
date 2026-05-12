@@ -1,1 +1,1 @@
-{"welcome":"Добро пожаловать в чат Client Journey","hint":"Запустите сессию через runtime API и продолжите здесь"}
+{"welcome":"Добро пожаловать в чат Client Journey","hint":"Запустите runtime-сессию и отвечайте кодами вариантов.","start":"Старт","send":"Отправить","answerPlaceholder":"код ответа (например doctor)","errorPrefix":"Ошибка","branchPlaceholder":"id отделения (например north)","branchRequired":"Сначала выберите отделение","branchSelected":"Выбрано отделение"}

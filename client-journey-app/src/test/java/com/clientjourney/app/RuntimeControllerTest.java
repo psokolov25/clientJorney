@@ -10,6 +10,13 @@ import com.clientjourney.app.service.RuntimeAnswerService;
 import com.clientjourney.app.service.RuntimeCompletionService;
 import com.clientjourney.app.service.RuntimeSessionService;
 import com.clientjourney.app.service.ServiceSelectionProcessor;
+import com.clientjourney.app.service.ScenarioService;
+import com.clientjourney.app.service.VisitCreationSettingsService;
+import com.clientjourney.app.repository.InMemoryScenarioRepository;
+import com.clientjourney.domain.model.Scenario;
+import com.clientjourney.domain.model.ScenarioStatus;
+
+import java.time.Instant;
 import com.clientjourney.core.ScenarioEngine;
 import com.clientjourney.visit.mock.DryRunVisitCreationClient;
 import org.junit.jupiter.api.Test;
@@ -36,6 +43,14 @@ class RuntimeControllerTest {
         assertNotNull(response.sessionId());
         assertEquals("SERVICE_SELECTION", response.message().type());
         assertNull(response.visitCreation());
+    }
+
+
+    @Test
+    void branchSelectionConfigShouldSupportBeforeAfterAndNoneModes() {
+        RuntimeController controller = controller();
+        var cfg = controller.branchSelectionConfig("medical-registration");
+        assertEquals("NONE", cfg.mode());
     }
 
     @Test
@@ -98,6 +113,10 @@ class RuntimeControllerTest {
         RuntimeSessionService runtimeSessionService = new RuntimeSessionService(new ScenarioEngine(), sessionService);
         RuntimeAnswerService answerService = new RuntimeAnswerService(sessionService);
         RuntimeCompletionService completionService = new RuntimeCompletionService(processor, sessionService, new DryRunVisitCreationClient());
-        return new RuntimeController(runtimeSessionService, answerService, completionService);
+        InMemoryScenarioRepository repo = new InMemoryScenarioRepository();
+        repo.save(new Scenario(UUID.randomUUID(), "medical-registration", "Medical", null, ScenarioStatus.DRAFT, 1, Instant.now(), Instant.now()));
+        ScenarioService scenarioService = new ScenarioService(repo);
+        VisitCreationSettingsService visitCreationSettingsService = new VisitCreationSettingsService();
+        return new RuntimeController(runtimeSessionService, answerService, completionService, scenarioService, visitCreationSettingsService);
     }
 }

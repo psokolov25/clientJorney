@@ -1,20 +1,230 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Client Journey Admin</title></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Journey Admin</title>
+  <style>
+    :root { font-family: Inter, Arial, sans-serif; color-scheme: light; }
+    body { margin: 0; background: #f4f6fa; color: #18212f; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #fff; border-bottom: 1px solid #e1e5ee; }
+    main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; padding: 16px; min-height: calc(100vh - 72px); }
+    .panel { background: #fff; border: 1px solid #e1e5ee; border-radius: 12px; padding: 14px; box-shadow: 0 4px 14px rgba(21, 45, 74, 0.06); }
+    h1,h2,h3 { margin: 0 0 8px; }
+    label { display: block; font-size: 13px; margin-top: 10px; color: #4b5871; }
+    input, select, button, textarea { width: 100%; box-sizing: border-box; margin-top: 6px; border: 1px solid #cbd4e4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+    button { background: #165dff; color: #fff; border: 0; cursor: pointer; font-weight: 600; }
+    button.secondary { background: #edf1f7; color: #324157; }
+    button + button { margin-top: 8px; }
+    #graph { width: 100%; height: 72vh; border-radius: 10px; border: 1px solid #ccd6e5; background: #fbfcff; }
+    .hint { color: #5b6c87; font-size: 13px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
+</head>
 <body>
-  <h1 id="title"></h1>
-  <p id="subtitle"></p>
-  <label for="locale">Language:</label>
-  <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
-  <script>
-    async function loadLocale(locale){
-      const messages=await fetch(`/admin/i18n/${locale}.json`).then(r=>r.json());
-      document.getElementById('title').textContent=messages.title;
-      document.getElementById('subtitle').textContent=messages.subtitle;
+<header>
+  <div>
+    <h1 id="title"></h1>
+    <div id="subtitle" class="hint"></div>
+  </div>
+  <label>
+    Language
+    <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
+  </label>
+</header>
+<main>
+  <section class="panel">
+    <h2 id="editorTitle"></h2>
+    <p id="editorHint" class="hint"></p>
+    <div class="row">
+      <label>Node id<input id="nodeId" placeholder="q-service"></label>
+      <label>Type<select id="nodeType"><option value="QUESTION">QUESTION</option><option value="RESULT">RESULT</option></select></label>
+    </div>
+    <label>Node label<textarea id="nodeText" rows="2" placeholder="Question text"></textarea></label>
+    <button id="addNodeBtn"></button>
+    <label>Edge from<select id="edgeFrom"></select></label>
+    <label>Edge to<select id="edgeTo"></select></label>
+    <label>Answer code<input id="edgeCode" placeholder="doctor"></label>
+    <button id="addEdgeBtn" class="secondary"></button>
+    <button id="resetBtn" class="secondary"></button>
+    <hr style="margin:12px 0;border:none;border-top:1px solid #e4e9f2">
+    <h3 id="opsTitle"></h3>
+    <p id="opsHint" class="hint"></p>
+    <button id="loadOpsBtn" class="secondary"></button>
+    <pre id="opsOutput" style="max-height:180px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
+    <label>Scenario id<input id="resolveScenarioId" placeholder="uuid"></label>
+    <label>Branch id<input id="resolveBranchId" placeholder="north"></label>
+    <button id="resolveBaseUrlBtn" class="secondary"></button>
+    <pre id="resolveOutput" style="max-height:120px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
+    <button id="visitSettingsTestBtn" class="secondary"></button>
+    <pre id="visitSettingsTestOutput" style="max-height:120px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
+
+  </section>
+  <section class="panel">
+    <h2 id="canvasTitle"></h2>
+    <p id="canvasHint" class="hint"></p>
+    <canvas id="graph" width="1200" height="800"></canvas>
+  </section>
+</main>
+
+<script>
+  const localeSel = document.getElementById('locale');
+  const graphCanvas = document.getElementById('graph');
+  const ctx = graphCanvas.getContext('2d');
+
+  const messagesCache = {};
+
+  const state = {
+    nodes: [{ id: 'start', type: 'QUESTION', text: 'How can we help?' }, { id: 'result', type: 'RESULT', text: 'Your visit is created' }],
+    edges: [{ from: 'start', to: 'result', code: 'continue' }]
+  };
+
+  function uniqueNodes() { return state.nodes.map(n => n.id); }
+
+  function updateSelectors() {
+    const options = uniqueNodes().map(id => `<option value="${id}">${id}</option>`).join('');
+    document.getElementById('edgeFrom').innerHTML = options;
+    document.getElementById('edgeTo').innerHTML = options;
+  }
+
+  function drawGraph() {
+    ctx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+    const centerX = graphCanvas.width / 2;
+    const levelGap = 220;
+    const nodeMap = new Map();
+    state.nodes.forEach((n, i) => {
+      nodeMap.set(n.id, {
+        ...n,
+        x: centerX + (i % 2 ? 220 : -220),
+        y: 120 + Math.floor(i / 2) * levelGap
+      });
+    });
+
+    state.edges.forEach(e => {
+      const from = nodeMap.get(e.from);
+      const to = nodeMap.get(e.to);
+      if (!from || !to) return;
+      ctx.strokeStyle = '#5879b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y + 36);
+      ctx.lineTo(to.x, to.y - 36);
+      ctx.stroke();
+      ctx.fillStyle = '#375283';
+      ctx.font = '12px Inter';
+      ctx.fillText(e.code, (from.x + to.x) / 2 + 6, (from.y + to.y) / 2);
+    });
+
+    nodeMap.forEach(node => {
+      ctx.fillStyle = node.type === 'RESULT' ? '#e7f8ef' : '#edf2ff';
+      ctx.strokeStyle = node.type === 'RESULT' ? '#50a56f' : '#4a71d1';
+      ctx.lineWidth = 2;
+      roundRect(ctx, node.x - 130, node.y - 36, 260, 72, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1b2940';
+      ctx.font = 'bold 13px Inter';
+      ctx.fillText(`${node.id} · ${node.type}`, node.x - 116, node.y - 10);
+      ctx.font = '12px Inter';
+      ctx.fillText(node.text.slice(0, 38), node.x - 116, node.y + 12);
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  document.getElementById('addNodeBtn').addEventListener('click', () => {
+    const id = document.getElementById('nodeId').value.trim();
+    const type = document.getElementById('nodeType').value;
+    const text = document.getElementById('nodeText').value.trim();
+    if (!id || state.nodes.find(n => n.id === id)) return;
+    state.nodes.push({ id, type, text: text || id });
+    updateSelectors();
+    drawGraph();
+  });
+
+  document.getElementById('addEdgeBtn').addEventListener('click', () => {
+    const from = document.getElementById('edgeFrom').value;
+    const to = document.getElementById('edgeTo').value;
+    const code = document.getElementById('edgeCode').value.trim() || 'next';
+    if (!from || !to) return;
+    state.edges.push({ from, to, code });
+    drawGraph();
+  });
+
+  document.getElementById('loadOpsBtn').addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/system/dashboard');
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.message || 'Request failed');
+      document.getElementById('opsOutput').textContent = JSON.stringify(payload, null, 2);
+    } catch (e) {
+      document.getElementById('opsOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
     }
-    const localeSel=document.getElementById('locale');
-    localeSel.addEventListener('change',()=>loadLocale(localeSel.value));
-    loadLocale('en');
-  </script>
+  });
+
+  document.getElementById('resolveBaseUrlBtn').addEventListener('click', async () => {
+    const scenarioId = document.getElementById('resolveScenarioId').value.trim();
+    const branchId = document.getElementById('resolveBranchId').value.trim();
+    if (!scenarioId) return;
+    try {
+      const res = await fetch(`/api/admin/scenarios/${scenarioId}/visit-creation-settings/resolve?branchId=${encodeURIComponent(branchId)}`);
+      const payload = await res.json();
+      document.getElementById('resolveOutput').textContent = JSON.stringify(payload, null, 2);
+    } catch (e) {
+      document.getElementById('resolveOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
+    }
+  });
+
+  document.getElementById('visitSettingsTestBtn').addEventListener('click', async () => {
+    const scenarioId = document.getElementById('resolveScenarioId').value.trim();
+    if (!scenarioId) return;
+    try {
+      const res = await fetch(`/api/admin/scenarios/${scenarioId}/visit-creation-settings/test`, { method: 'POST' });
+      const payload = await res.json();
+      document.getElementById('visitSettingsTestOutput').textContent = JSON.stringify(payload, null, 2);
+    } catch (e) {
+      document.getElementById('visitSettingsTestOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.nodes = [{ id: 'start', type: 'QUESTION', text: 'How can we help?' }, { id: 'result', type: 'RESULT', text: 'Your visit is created' }];
+    state.edges = [{ from: 'start', to: 'result', code: 'continue' }];
+    updateSelectors();
+    drawGraph();
+  });
+
+  async function loadLocale(locale) {
+    const messages = await fetch(`/admin/i18n/${locale}.json`).then(r => r.json());
+    document.getElementById('title').textContent = messages.title;
+    document.getElementById('subtitle').textContent = messages.subtitle;
+    document.getElementById('editorTitle').textContent = messages.editorTitle;
+    document.getElementById('editorHint').textContent = messages.editorHint;
+    document.getElementById('canvasTitle').textContent = messages.canvasTitle;
+    document.getElementById('canvasHint').textContent = messages.canvasHint;
+    document.getElementById('addNodeBtn').textContent = messages.addNode;
+    document.getElementById('addEdgeBtn').textContent = messages.addEdge;
+    document.getElementById('resetBtn').textContent = messages.reset;
+    document.getElementById('opsTitle').textContent = messages.opsTitle;
+    document.getElementById('opsHint').textContent = messages.opsHint;
+    Object.assign(messagesCache, messages);
+    document.getElementById('loadOpsBtn').textContent = messages.loadOps;
+    document.getElementById('resolveBaseUrlBtn').textContent = messages.resolveBaseUrl;
+    document.getElementById('visitSettingsTestBtn').textContent = messages.testVisitSettings;
+  }
+
+  localeSel.addEventListener('change', () => loadLocale(localeSel.value));
+  updateSelectors();
+  drawGraph();
+  loadLocale('en');
+</script>
 </body>
 </html>

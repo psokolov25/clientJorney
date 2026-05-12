@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class EmbeddedFrontendResourcesTest {
 
     @Test
-    void embedded_admin_and_chat_resources_should_exist() {
+    void embedded_admin_chat_and_root_resources_should_exist() {
+        assertNotNull(getClass().getResource("/public/index.html"));
+
         assertNotNull(getClass().getResource("/public/admin/index.html"));
         assertNotNull(getClass().getResource("/public/admin/i18n/en.json"));
         assertNotNull(getClass().getResource("/public/admin/i18n/ru.json"));

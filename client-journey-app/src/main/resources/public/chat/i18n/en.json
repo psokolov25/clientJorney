@@ -1,1 +1,1 @@
-{"welcome":"Welcome to Client Journey chat","hint":"Start session from runtime API and continue here"}
+{"welcome":"Welcome to Client Journey chat","hint":"Start a runtime session and answer with option codes.","start":"Start","send":"Send","answerPlaceholder":"answer code (e.g. doctor)","errorPrefix":"Error","branchPlaceholder":"branch id (e.g. north)","branchRequired":"Choose a branch before starting","branchSelected":"Branch selected"}

@@ -1,0 +1,16 @@
+{
+  "name": "client-journey-frontend-tools",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "frontend:test": "playwright test",
+    "frontend:test:chromium": "playwright test --project=chromium",
+    "frontend:test:firefox": "playwright test --project=firefox",
+    "frontend:debug:chromium": "PWDEBUG=1 playwright test --project=chromium --headed",
+    "frontend:debug:firefox": "PWDEBUG=1 playwright test --project=firefox --headed",
+    "frontend:screenshot": "playwright test tests/frontend/smoke.spec.ts --project=chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.2"
+  }
+}

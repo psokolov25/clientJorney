@@ -19,7 +19,7 @@ public class AdminVisitManagerController {
         this.serviceCatalogService = serviceCatalogService;
     }
 
-    @Operation(summary = "List VisitManager services")
+    @Operation(summary = "Список услуг VisitManager")
     @Get("/services")
     public List<VisitManagerServiceDto> listServices(@QueryValue String baseUrl,
                                                      @QueryValue String branchId,
