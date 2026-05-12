@@ -110,10 +110,22 @@ tests/frontend/
 java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app.jar
 ```
 
+Для Windows PowerShell используйте тот же аргумент без пробела после `-D`:
+
+```powershell
+java "-Dmicronaut.environments=file" -jar client-journey-app/target/client-journey-app.jar
+```
+
 ### Запуск (postgres profile)
 
 ```bash
 java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app.jar
+```
+
+Если jar ещё не собран, сначала выполните:
+
+```bash
+./mvnw clean package
 ```
 
 ## 7. Конфигурация и профили
