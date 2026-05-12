@@ -9,13 +9,18 @@ import com.clientjourney.app.security.PiiMaskingUtil;
 
 @Controller("/api/system/security")
 public class SystemSecurityController {
+    private final com.clientjourney.app.security.SecurityPolicyConfig config;
+
+    public SystemSecurityController(com.clientjourney.app.security.SecurityPolicyConfig config) {
+        this.config = config;
+    }
 
     @Get("/policy")
     public Map<String, Object> policy() {
         return Map.of(
-            "apiKeyAuth", "baseline",
-            "rateLimit", "baseline",
-            "piiMasking", "baseline"
+            "apiKeyAuth", config.isApiKeyEnabled() ? "enabled" : "disabled",
+            "rateLimitPerMinute", config.getRateLimitPerMinute(),
+            "piiMasking", config.isPiiMaskingEnabled() ? "enabled" : "disabled"
         );
     }
 

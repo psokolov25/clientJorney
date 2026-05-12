@@ -23,7 +23,7 @@ public class RateLimitFilter implements HttpServerFilter {
 
     @Override
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
-        String key = request.getRemoteAddress().map(Object::toString).orElse("unknown");
+        String key = request.getRemoteAddress() == null ? "unknown" : request.getRemoteAddress().toString();
         Window window = windows.computeIfAbsent(key, k -> new Window());
         synchronized (window) {
             long now = Instant.now().getEpochSecond();

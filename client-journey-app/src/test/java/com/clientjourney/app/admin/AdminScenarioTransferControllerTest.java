@@ -30,6 +30,9 @@ class AdminScenarioTransferControllerTest {
         var dryRun = c.dryRunImport(new ScenarioImportRequest(new CreateScenarioRequest("code-2", "n", "d"), null));
         assertEquals(true, dryRun.ok());
 
+        var duplicate = c.validateImport(new ScenarioImportRequest(new CreateScenarioRequest("code-1", "n", "d"), null));
+        assertEquals(false, duplicate.valid());
+
         var invalid = c.validateImport(new ScenarioImportRequest(new CreateScenarioRequest("", "n", "d"), null));
         assertEquals(false, invalid.valid());
     }

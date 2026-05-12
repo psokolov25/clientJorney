@@ -41,7 +41,13 @@ public class AdminScenarioTransferController {
     @Get("/export/all")
     public List<ScenarioExportDto> exportAll() {
         return scenarioService.findAll().stream()
-            .map(s -> new ScenarioExportDto(s, graphService.getGraph(s.id())))
+            .map(s -> {
+                try {
+                    return new ScenarioExportDto(s, graphService.getGraph(s.id()));
+                } catch (Exception e) {
+                    return new ScenarioExportDto(s, null);
+                }
+            })
             .toList();
     }
 
@@ -52,6 +58,10 @@ public class AdminScenarioTransferController {
         }
         if (request.scenario().code() == null || request.scenario().code().isBlank()) {
             return new ScenarioImportValidationResult(false, List.of("scenario.code is required"));
+        }
+        boolean codeExists = scenarioService.findAll().stream().anyMatch(s -> s.code().equals(request.scenario().code()));
+        if (codeExists) {
+            return new ScenarioImportValidationResult(false, List.of("scenario.code already exists"));
         }
         return new ScenarioImportValidationResult(true, List.of());
     }
