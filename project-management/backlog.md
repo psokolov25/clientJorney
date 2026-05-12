@@ -40,7 +40,7 @@
 - [x] Observability expansion (health/readiness/liveness + metrics)
 - [x] Scenario transfer v2 (compat validation + dry-run report)
 
-- [ ] Полный набор channel adapters (WhatsApp/MAX/Facebook как официальные integration-ready skeleton) *(вынесено в следующий спринт по решению PO/PM)*
+- [x] Полный набор channel adapters (WhatsApp/MAX/Facebook как официальные integration-ready skeleton)
 - [x] Режим создания визитов: единый сервер или разные серверы по отделениям/регионам
 - [x] Расширенный импорт/экспорт сценариев
 - [x] Метрики, трассировка, health/readiness/liveness (расширенная operational dashboard)
