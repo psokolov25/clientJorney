@@ -63,7 +63,7 @@
 - [x] Scenario transfer: расширенный import/export (валидация совместимости версии, режим dry-run с отчетом issues).
 
 ### Scope (stretch)
-- [ ] Channel adapters: integration-ready skeleton completion (WhatsApp/MAX/Facebook). *(вынесено в следующий спринт по решению PO/PM)*
+- [x] Channel adapters: integration-ready skeleton completion (WhatsApp/MAX/Facebook). *(завершено в Sprint 9)*
 - [x] Channel adapters: подготовлен integration-ready metadata contract (requiredConfigKeys + webhook signature capability) для WhatsApp/MAX/Facebook skeletons.
 
 ### Definition of Done
