@@ -107,25 +107,38 @@ tests/frontend/
 ### Запуск (file profile)
 
 ```bash
-java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app.jar
+java -Dmicronaut.environments=file -jar client-journey-app/target/client-journey-app-0.1.0-SNAPSHOT.jar
 ```
 
 Для Windows PowerShell используйте тот же аргумент без пробела после `-D`:
 
 ```powershell
-java "-Dmicronaut.environments=file" -jar client-journey-app/target/client-journey-app.jar
+java "-Dmicronaut.environments=file" -jar client-journey-app/target/client-journey-app-0.1.0-SNAPSHOT.jar
 ```
 
 ### Запуск (postgres profile)
 
 ```bash
-java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app.jar
+java -Dmicronaut.environments=postgres -jar client-journey-app/target/client-journey-app-0.1.0-SNAPSHOT.jar
 ```
 
 Если jar ещё не собран, сначала выполните:
 
 ```bash
 ./mvnw clean package
+```
+
+
+Проверить фактическое имя артефакта можно так:
+
+```bash
+ls client-journey-app/target/*.jar
+```
+
+PowerShell:
+
+```powershell
+Get-ChildItem client-journey-app/target/*.jar
 ```
 
 ## 7. Конфигурация и профили
