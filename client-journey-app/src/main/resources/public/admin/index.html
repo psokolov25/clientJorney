@@ -1,230 +1,272 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Client Journey Admin</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Journey Admin (React Flow)</title>
+  <link rel="stylesheet" href="https://unpkg.com/reactflow@11.11.4/dist/style.css" />
   <style>
-    :root { font-family: Inter, Arial, sans-serif; color-scheme: light; }
-    body { margin: 0; background: #f4f6fa; color: #18212f; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: #fff; border-bottom: 1px solid #e1e5ee; }
-    main { display: grid; grid-template-columns: 340px 1fr; gap: 16px; padding: 16px; min-height: calc(100vh - 72px); }
-    .panel { background: #fff; border: 1px solid #e1e5ee; border-radius: 12px; padding: 14px; box-shadow: 0 4px 14px rgba(21, 45, 74, 0.06); }
-    h1,h2,h3 { margin: 0 0 8px; }
-    label { display: block; font-size: 13px; margin-top: 10px; color: #4b5871; }
-    input, select, button, textarea { width: 100%; box-sizing: border-box; margin-top: 6px; border: 1px solid #cbd4e4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
-    button { background: #165dff; color: #fff; border: 0; cursor: pointer; font-weight: 600; }
-    button.secondary { background: #edf1f7; color: #324157; }
-    button + button { margin-top: 8px; }
-    #graph { width: 100%; height: 72vh; border-radius: 10px; border: 1px solid #ccd6e5; background: #fbfcff; }
-    .hint { color: #5b6c87; font-size: 13px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    body { margin: 0; font-family: Inter, Arial, sans-serif; background: #f4f6fa; }
+    header { display:flex; justify-content:space-between; align-items:center; background:#fff; border-bottom:1px solid #e1e5ee; padding:14px 18px; }
+    main { display:grid; grid-template-columns:360px 1fr; gap:12px; padding:12px; height:calc(100vh - 66px); }
+    .panel { background:#fff; border:1px solid #e1e5ee; border-radius:10px; padding:12px; overflow:auto; }
+    .field { margin-bottom:10px; }
+    label { font-size:12px; color:#5b6c87; display:block; margin-bottom:4px; }
+    input,select,button,textarea { width:100%; box-sizing:border-box; border:1px solid #cbd4e4; border-radius:8px; padding:8px; }
+    button { background:#165dff; color:#fff; font-weight:600; border:0; cursor:pointer; }
+    .secondary { background:#edf1f7; color:#324157; }
+    #app { height:100%; }
+    .react-flow__node-question { border:2px solid #4a71d1; background:#edf2ff; border-radius:10px; padding:8px; width:220px; }
+    .react-flow__node-result { border:2px solid #50a56f; background:#e7f8ef; border-radius:10px; padding:8px; width:220px; }
+    .hint {font-size:12px;color:#667791;}
   </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1 id="title"></h1>
-    <div id="subtitle" class="hint"></div>
-  </div>
-  <label>
-    Language
-    <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
-  </label>
+  <div><strong>Client Journey Admin</strong><div class="hint">Phase 0 React Flow editor</div></div>
+  <span class="hint">Release target UI (no legacy mode)</span>
 </header>
-<main>
-  <section class="panel">
-    <h2 id="editorTitle"></h2>
-    <p id="editorHint" class="hint"></p>
-    <div class="row">
-      <label>Node id<input id="nodeId" placeholder="q-service"></label>
-      <label>Type<select id="nodeType"><option value="QUESTION">QUESTION</option><option value="RESULT">RESULT</option></select></label>
-    </div>
-    <label>Node label<textarea id="nodeText" rows="2" placeholder="Question text"></textarea></label>
-    <button id="addNodeBtn"></button>
-    <label>Edge from<select id="edgeFrom"></select></label>
-    <label>Edge to<select id="edgeTo"></select></label>
-    <label>Answer code<input id="edgeCode" placeholder="doctor"></label>
-    <button id="addEdgeBtn" class="secondary"></button>
-    <button id="resetBtn" class="secondary"></button>
-    <hr style="margin:12px 0;border:none;border-top:1px solid #e4e9f2">
-    <h3 id="opsTitle"></h3>
-    <p id="opsHint" class="hint"></p>
-    <button id="loadOpsBtn" class="secondary"></button>
-    <pre id="opsOutput" style="max-height:180px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
-    <label>Scenario id<input id="resolveScenarioId" placeholder="uuid"></label>
-    <label>Branch id<input id="resolveBranchId" placeholder="north"></label>
-    <button id="resolveBaseUrlBtn" class="secondary"></button>
-    <pre id="resolveOutput" style="max-height:120px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
-    <button id="visitSettingsTestBtn" class="secondary"></button>
-    <pre id="visitSettingsTestOutput" style="max-height:120px;overflow:auto;background:#f7f9ff;border:1px solid #dde5f2;border-radius:8px;padding:8px;font-size:12px;"></pre>
+<main id="app"></main>
 
-  </section>
-  <section class="panel">
-    <h2 id="canvasTitle"></h2>
-    <p id="canvasHint" class="hint"></p>
-    <canvas id="graph" width="1200" height="800"></canvas>
-  </section>
-</main>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/reactflow@11.11.4/dist/umd/index.js"></script>
+<script type="text/babel">
+const {useMemo, useState, useCallback} = React;
+const {ReactFlow, Background, Controls, MiniMap, addEdge, applyNodeChanges, applyEdgeChanges} = window.ReactFlow;
 
-<script>
-  const localeSel = document.getElementById('locale');
-  const graphCanvas = document.getElementById('graph');
-  const ctx = graphCanvas.getContext('2d');
+function App(){
+  const [nodes, setNodes] = useState([
+    { id:'start', type:'question', data:{ label:'start', text:'How can we help?' }, position:{x:100,y:120}},
+    { id:'q-service', type:'question', data:{ label:'q-service', text:'Choose service' }, position:{x:450,y:120}},
+    { id:'result', type:'result', data:{ label:'result', text:'Visit created' }, position:{x:830,y:120}}
+  ]);
+  const [edges, setEdges] = useState([
+    { id:'e1', source:'start', target:'q-service', label:'visit:Book visit' },
+    { id:'e2', source:'q-service', target:'result', label:'doctor:Doctor consult' }
+  ]);
+  const [selectedNodeId, setSelectedNodeId] = useState('start');
+  const [answerCode, setAnswerCode] = useState('');
+  const [answerLabel, setAnswerLabel] = useState('');
+  const [targetId, setTargetId] = useState('result');
+  const [flowJson, setFlowJson] = useState('');
+  const [status, setStatus] = useState('Ready');
+  const [scenarioId, setScenarioId] = useState('');
 
-  const messagesCache = {};
+  const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
-  const state = {
-    nodes: [{ id: 'start', type: 'QUESTION', text: 'How can we help?' }, { id: 'result', type: 'RESULT', text: 'Your visit is created' }],
-    edges: [{ from: 'start', to: 'result', code: 'continue' }]
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const onConnect = useCallback((params) => setEdges((eds) => addEdge({ ...params, label: 'next' }, eds)), []);
+
+  const addQuestionNode = () => {
+    const id = `q-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, { id, type:'question', data:{label:id, text:'New question'}, position:{x:180 + prev.length*30, y:280 + prev.length*20} }]);
   };
 
-  function uniqueNodes() { return state.nodes.map(n => n.id); }
+  const addResultNode = () => {
+    const id = `r-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, { id, type:'result', data:{label:id, text:'Result'}, position:{x:760, y:300 + prev.length*20} }]);
+  };
 
-  function updateSelectors() {
-    const options = uniqueNodes().map(id => `<option value="${id}">${id}</option>`).join('');
-    document.getElementById('edgeFrom').innerHTML = options;
-    document.getElementById('edgeTo').innerHTML = options;
-  }
+  const addAnswerPath = () => {
+    if(!selectedNodeId || !targetId || !answerCode.trim()) return;
+    const edgeId = `e-${selectedNodeId}-${targetId}-${answerCode.trim()}`;
+    if (edges.some(e => e.id === edgeId)) return;
+    setEdges(prev => [...prev, { id: edgeId, source:selectedNodeId, target:targetId, label:`${answerCode.trim()}:${(answerLabel || answerCode).trim()}` }]);
+    setAnswerCode(''); setAnswerLabel('');
+  };
 
-  function drawGraph() {
-    ctx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
-    const centerX = graphCanvas.width / 2;
-    const levelGap = 220;
-    const nodeMap = new Map();
-    state.nodes.forEach((n, i) => {
-      nodeMap.set(n.id, {
-        ...n,
-        x: centerX + (i % 2 ? 220 : -220),
-        y: 120 + Math.floor(i / 2) * levelGap
+  const validateFlow = (nodesArg = nodes, edgesArg = edges) => {
+    const ids = new Set(nodesArg.map(n => n.id));
+    for (const e of edgesArg) {
+      if (!ids.has(e.source) || !ids.has(e.target)) return `Broken edge ${e.id}`;
+    }
+    const hasResult = nodesArg.some(n => n.type === 'result');
+    if (!hasResult) return 'At least one RESULT node is required';
+
+    const start = nodesArg.find(n => n.id === 'start') || nodesArg[0];
+    if (!start) return 'Graph has no nodes';
+    const adjacency = new Map(nodesArg.map(n => [n.id, []]));
+    edgesArg.forEach(e => adjacency.get(e.source)?.push(e.target));
+
+    const visited = new Set();
+    const queue = [start.id];
+    while (queue.length) {
+      const current = queue.shift();
+      if (visited.has(current)) continue;
+      visited.add(current);
+      (adjacency.get(current) || []).forEach(next => { if (!visited.has(next)) queue.push(next); });
+    }
+
+    const unreachable = nodesArg.filter(n => !visited.has(n.id)).map(n => n.id);
+    if (unreachable.length) return `Unreachable nodes: ${unreachable.join(', ')}`;
+
+    const reachesResult = (nodeId, seen = new Set()) => {
+      if (seen.has(nodeId)) return false;
+      seen.add(nodeId);
+      const node = nodesArg.find(n => n.id === nodeId);
+      if (!node) return false;
+      if (node.type === 'result') return true;
+      return (adjacency.get(nodeId) || []).some(next => reachesResult(next, new Set(seen)));
+    };
+
+    const deadEnds = nodesArg.filter(n => n.type !== 'result' && !reachesResult(n.id)).map(n => n.id);
+    if (deadEnds.length) return `Nodes without path to RESULT: ${deadEnds.join(', ')}`;
+
+    return '';
+  };
+
+  const toScenarioGraph = () => ({
+    scenarioId: scenarioId || null,
+    version: 1,
+    nodes: nodes.map(n => ({
+      id: n.id,
+      type: n.type === 'result' ? 'RESULT' : 'QUESTION',
+      code: n.id,
+      text: n.data?.text || n.data?.label || n.id,
+      answers: edges.filter(e => e.source === n.id).map(e => {
+        const [code, ...labelParts] = String(e.label || 'next').split(':');
+        return { id: code || 'next', text: labelParts.join(':') || code || 'next' };
+      }),
+      services: []
+    })),
+    edges: edges.map(e => ({
+      id: e.id,
+      sourceNodeId: e.source,
+      sourceAnswerId: String(e.label || 'next').split(':')[0] || 'next',
+      targetNodeId: e.target
+    }))
+  });
+
+  const fromScenarioGraph = (payload) => {
+    if (!payload || !Array.isArray(payload.nodes)) throw new Error('JSON must contain nodes[]');
+    const restoredNodes = payload.nodes.map((n, idx) => ({
+      id: n.id,
+      type: n.type === 'RESULT' ? 'result' : 'question',
+      data: { label: n.code || n.id, text: n.text || n.id },
+      position: { x: 150 + (idx % 3) * 320, y: 120 + Math.floor(idx / 3) * 180 }
+    }));
+    const answerMap = new Map();
+    payload.nodes.forEach(n => {
+      (n.answers || []).forEach(a => answerMap.set(`${n.id}:${a.id}`, a.text || a.id));
+    });
+    const restoredEdges = (payload.edges || []).map((e, i) => ({
+      id: e.id || `e-${e.sourceNodeId}-${e.targetNodeId}-${i}`,
+      source: e.sourceNodeId,
+      target: e.targetNodeId,
+      label: `${e.sourceAnswerId}:${answerMap.get(`${e.sourceNodeId}:${e.sourceAnswerId}`) || e.sourceAnswerId}`
+    }));
+    return { restoredNodes, restoredEdges, restoredScenarioId: payload.scenarioId || '' };
+  };
+
+  const exportFlow = () => {
+    const payload = toScenarioGraph();
+    const json = JSON.stringify(payload, null, 2);
+    setFlowJson(json);
+    navigator.clipboard.writeText(json);
+    const err = validateFlow();
+    setStatus(err ? `Validation error: ${err}` : 'Flow exported and copied to clipboard');
+  };
+
+  const importFlow = () => {
+    try {
+      const parsed = JSON.parse(flowJson);
+      const { restoredNodes, restoredEdges, restoredScenarioId } = fromScenarioGraph(parsed);
+      const err = validateFlow(restoredNodes, restoredEdges);
+      setNodes(restoredNodes);
+      setEdges(restoredEdges);
+      setScenarioId(restoredScenarioId);
+      setStatus(err ? `Imported with validation error: ${err}` : 'Flow imported successfully');
+    } catch (e) {
+      setStatus(`Import failed: ${e.message}`);
+    }
+  };
+
+  const loadFromApi = async () => {
+    if (!scenarioId) return setStatus('Scenario ID is required');
+    try {
+      const res = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph`);
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.message || 'Load failed');
+      const { restoredNodes, restoredEdges, restoredScenarioId } = fromScenarioGraph(payload);
+      setNodes(restoredNodes); setEdges(restoredEdges); setScenarioId(restoredScenarioId || scenarioId);
+      setFlowJson(JSON.stringify(payload, null, 2));
+      setStatus('Loaded graph from API');
+    } catch (e) { setStatus(`Load failed: ${e.message}`); }
+  };
+
+  const saveToApi = async () => {
+    if (!scenarioId) return setStatus('Scenario ID is required');
+    try {
+      const payload = toScenarioGraph();
+      const err = validateFlow();
+      if (err) return setStatus(`Save blocked by validation: ${err}`);
+      const res = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
-    });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Save failed');
+      setFlowJson(JSON.stringify(data, null, 2));
+      setStatus('Saved graph to API');
+    } catch (e) { setStatus(`Save failed: ${e.message}`); }
+  };
 
-    state.edges.forEach(e => {
-      const from = nodeMap.get(e.from);
-      const to = nodeMap.get(e.to);
-      if (!from || !to) return;
-      ctx.strokeStyle = '#5879b8';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(from.x, from.y + 36);
-      ctx.lineTo(to.x, to.y - 36);
-      ctx.stroke();
-      ctx.fillStyle = '#375283';
-      ctx.font = '12px Inter';
-      ctx.fillText(e.code, (from.x + to.x) / 2 + 6, (from.y + to.y) / 2);
-    });
+  const nodeTypes = useMemo(() => ({
+    question: ({data}) => <div><strong>{data.label}</strong><div>{data.text}</div></div>,
+    result: ({data}) => <div><strong>{data.label}</strong><div>{data.text}</div></div>
+  }), []);
 
-    nodeMap.forEach(node => {
-      ctx.fillStyle = node.type === 'RESULT' ? '#e7f8ef' : '#edf2ff';
-      ctx.strokeStyle = node.type === 'RESULT' ? '#50a56f' : '#4a71d1';
-      ctx.lineWidth = 2;
-      roundRect(ctx, node.x - 130, node.y - 36, 260, 72, 10);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#1b2940';
-      ctx.font = 'bold 13px Inter';
-      ctx.fillText(`${node.id} · ${node.type}`, node.x - 116, node.y - 10);
-      ctx.font = '12px Inter';
-      ctx.fillText(node.text.slice(0, 38), node.x - 116, node.y + 12);
-    });
-  }
+  return (
+    <>
+      <section className="panel">
+        <h3>Editor controls</h3>
+        <p className="hint">React Flow spike: nodes, answer edges, export.</p>
+        <div className="field"><label>Scenario ID</label><input value={scenarioId} onChange={(e)=>setScenarioId(e.target.value)} placeholder="UUID" /></div>
+        <div className="field"><button className="secondary" onClick={loadFromApi}>Load from API</button></div>
+        <div className="field"><button className="secondary" onClick={saveToApi}>Save to API</button></div>
+        <div className="field"><button onClick={addQuestionNode}>Add QUESTION</button></div>
+        <div className="field"><button className="secondary" onClick={addResultNode}>Add RESULT</button></div>
 
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
+        <div className="field"><label>From node</label>
+          <select value={selectedNodeId} onChange={(e)=>setSelectedNodeId(e.target.value)}>{nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}</select>
+        </div>
+        <div className="field"><label>Answer code</label><input value={answerCode} onChange={(e)=>setAnswerCode(e.target.value)} /></div>
+        <div className="field"><label>Answer label</label><input value={answerLabel} onChange={(e)=>setAnswerLabel(e.target.value)} /></div>
+        <div className="field"><label>Target node</label>
+          <select value={targetId} onChange={(e)=>setTargetId(e.target.value)}>{nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}</select>
+        </div>
+        <div className="field"><button onClick={addAnswerPath}>Add answer path</button></div>
+        <div className="field"><button className="secondary" onClick={exportFlow}>Export + Copy JSON</button></div>
+        <div className="field"><button className="secondary" onClick={importFlow}>Import JSON</button></div>
+        <div className="field"><label>Flow JSON (ScenarioGraph)</label><textarea rows="8" value={flowJson} onChange={(e)=>setFlowJson(e.target.value)} /></div>
+        <p className="hint">Selected: {selectedNode ? selectedNode.id : 'none'}</p>
+        <p className="hint">{status}</p>
+      </section>
+      <section className="panel" style={{padding:0}}>
+        <div style={{width:'100%', height:'100%'}}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+            fitView
+          >
+            <MiniMap />
+            <Controls />
+            <Background gap={20} />
+          </ReactFlow>
+        </div>
+      </section>
+    </>
+  )
+}
 
-  document.getElementById('addNodeBtn').addEventListener('click', () => {
-    const id = document.getElementById('nodeId').value.trim();
-    const type = document.getElementById('nodeType').value;
-    const text = document.getElementById('nodeText').value.trim();
-    if (!id || state.nodes.find(n => n.id === id)) return;
-    state.nodes.push({ id, type, text: text || id });
-    updateSelectors();
-    drawGraph();
-  });
-
-  document.getElementById('addEdgeBtn').addEventListener('click', () => {
-    const from = document.getElementById('edgeFrom').value;
-    const to = document.getElementById('edgeTo').value;
-    const code = document.getElementById('edgeCode').value.trim() || 'next';
-    if (!from || !to) return;
-    state.edges.push({ from, to, code });
-    drawGraph();
-  });
-
-  document.getElementById('loadOpsBtn').addEventListener('click', async () => {
-    try {
-      const res = await fetch('/api/system/dashboard');
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.message || 'Request failed');
-      document.getElementById('opsOutput').textContent = JSON.stringify(payload, null, 2);
-    } catch (e) {
-      document.getElementById('opsOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
-    }
-  });
-
-  document.getElementById('resolveBaseUrlBtn').addEventListener('click', async () => {
-    const scenarioId = document.getElementById('resolveScenarioId').value.trim();
-    const branchId = document.getElementById('resolveBranchId').value.trim();
-    if (!scenarioId) return;
-    try {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/visit-creation-settings/resolve?branchId=${encodeURIComponent(branchId)}`);
-      const payload = await res.json();
-      document.getElementById('resolveOutput').textContent = JSON.stringify(payload, null, 2);
-    } catch (e) {
-      document.getElementById('resolveOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
-    }
-  });
-
-  document.getElementById('visitSettingsTestBtn').addEventListener('click', async () => {
-    const scenarioId = document.getElementById('resolveScenarioId').value.trim();
-    if (!scenarioId) return;
-    try {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/visit-creation-settings/test`, { method: 'POST' });
-      const payload = await res.json();
-      document.getElementById('visitSettingsTestOutput').textContent = JSON.stringify(payload, null, 2);
-    } catch (e) {
-      document.getElementById('visitSettingsTestOutput').textContent = `${messagesCache.opsError}: ${e.message}`;
-    }
-  });
-
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    state.nodes = [{ id: 'start', type: 'QUESTION', text: 'How can we help?' }, { id: 'result', type: 'RESULT', text: 'Your visit is created' }];
-    state.edges = [{ from: 'start', to: 'result', code: 'continue' }];
-    updateSelectors();
-    drawGraph();
-  });
-
-  async function loadLocale(locale) {
-    const messages = await fetch(`/admin/i18n/${locale}.json`).then(r => r.json());
-    document.getElementById('title').textContent = messages.title;
-    document.getElementById('subtitle').textContent = messages.subtitle;
-    document.getElementById('editorTitle').textContent = messages.editorTitle;
-    document.getElementById('editorHint').textContent = messages.editorHint;
-    document.getElementById('canvasTitle').textContent = messages.canvasTitle;
-    document.getElementById('canvasHint').textContent = messages.canvasHint;
-    document.getElementById('addNodeBtn').textContent = messages.addNode;
-    document.getElementById('addEdgeBtn').textContent = messages.addEdge;
-    document.getElementById('resetBtn').textContent = messages.reset;
-    document.getElementById('opsTitle').textContent = messages.opsTitle;
-    document.getElementById('opsHint').textContent = messages.opsHint;
-    Object.assign(messagesCache, messages);
-    document.getElementById('loadOpsBtn').textContent = messages.loadOps;
-    document.getElementById('resolveBaseUrlBtn').textContent = messages.resolveBaseUrl;
-    document.getElementById('visitSettingsTestBtn').textContent = messages.testVisitSettings;
-  }
-
-  localeSel.addEventListener('change', () => loadLocale(localeSel.value));
-  updateSelectors();
-  drawGraph();
-  loadLocale('en');
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
 </script>
 </body>
 </html>
