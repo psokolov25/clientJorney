@@ -16,6 +16,9 @@
     <module>client-journey-channel-kafka</module>
     <module>client-journey-channel-telegram</module>
     <module>client-journey-channel-websocket</module>
+    <module>client-journey-channel-whatsapp</module>
+    <module>client-journey-channel-max</module>
+    <module>client-journey-channel-facebook</module>
     <module>client-journey-visit-visitmanager</module>
     <module>client-journey-visit-custom-rest</module>
     <module>client-journey-visit-mock</module>

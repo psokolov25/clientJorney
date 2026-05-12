@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Client Journey Chat</title></head>
+<body>
+  <h2 id="welcome"></h2>
+  <p id="hint"></p>
+  <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
+  <script>
+    async function loadLocale(locale){
+      const messages=await fetch(`/chat/i18n/${locale}.json`).then(r=>r.json());
+      document.getElementById('welcome').textContent=messages.welcome;
+      document.getElementById('hint').textContent=messages.hint;
+    }
+    const localeSel=document.getElementById('locale');
+    localeSel.addEventListener('change',()=>loadLocale(localeSel.value));
+    loadLocale('en');
+  </script>
+</body>
+</html>
