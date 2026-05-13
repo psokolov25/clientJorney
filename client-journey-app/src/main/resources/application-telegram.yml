@@ -1,0 +1,14 @@
+client-journey:
+  channel:
+    telegram:
+      enabled: true
+      botToken: ${CJ_TELEGRAM_BOT_TOKEN:}
+      deliveryMode: ${CJ_TELEGRAM_DELIVERY_MODE:POLLING} # POLLING | WEBHOOK
+      webhookUrl: ${CJ_TELEGRAM_WEBHOOK_URL:}
+      polling:
+        timeoutSeconds: ${CJ_TELEGRAM_POLLING_TIMEOUT:25}
+        allowedUpdates: ${CJ_TELEGRAM_ALLOWED_UPDATES:message,callback_query}
+      retry:
+        maxAttempts: ${CJ_TELEGRAM_RETRY_MAX_ATTEMPTS:3}
+        baseDelayMs: ${CJ_TELEGRAM_RETRY_BASE_DELAY_MS:500}
+

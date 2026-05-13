@@ -73,4 +73,40 @@ class CaptureNodeProcessingServiceTest {
         Map<?, ?> payload = (Map<?, ?>) result.get("capture.lastOutput");
         assertEquals("Unsupported url: only absolute http(s) URLs are allowed", payload.get("capture.api.error"));
     }
+
+    @Test
+    void shouldReportInvalidApiCaptureConfigJson() {
+        CaptureNodeProcessingService service = new CaptureNodeProcessingService(null);
+        ScenarioNode node = new ScenarioNode(
+            "api-3",
+            NodeType.API_CAPTURE,
+            "{\"url\":\"https://example.org/capture\",",
+            "API capture",
+            List.of(),
+            List.of()
+        );
+
+        Map<String, Object> result = service.process(node, "value", Map.of());
+
+        Map<?, ?> payload = (Map<?, ?>) result.get("capture.lastOutput");
+        assertTrue(String.valueOf(payload.get("capture.api.error")).startsWith("Invalid API_CAPTURE config JSON:"));
+    }
+
+    @Test
+    void shouldReportGroovyRuntimeErrorInCaptureOutput() {
+        CaptureNodeProcessingService service = new CaptureNodeProcessingService(null);
+        ScenarioNode node = new ScenarioNode(
+            "groovy-err",
+            NodeType.GROOVY_CAPTURE,
+            "throw new RuntimeException('boom')",
+            "Groovy capture",
+            List.of(),
+            List.of()
+        );
+
+        Map<String, Object> result = service.process(node, "value", Map.of());
+
+        Map<?, ?> payload = (Map<?, ?>) result.get("capture.lastOutput");
+        assertTrue(String.valueOf(payload.get("capture.groovy.error")).contains("boom"));
+    }
 }

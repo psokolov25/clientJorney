@@ -60,8 +60,8 @@ public class CaptureNodeProcessingService {
                 payloadField = String.valueOf(config.getOrDefault("payloadField", "answerValue"));
                 Object nextField = config.get("nextInputField");
                 nextInputField = nextField == null ? null : String.valueOf(nextField);
-            } catch (Exception ignored) {
-                // fallback to plain url mode
+            } catch (Exception ex) {
+                return Map.of("capture.api.error", "Invalid API_CAPTURE config JSON: " + ex.getMessage());
             }
         }
         if (url == null || url.isBlank()) {
