@@ -6,5 +6,7 @@ public enum NodeType {
     RESULT,
     INFO,
     ERROR,
-    HANDOFF
+    HANDOFF,
+    API_CAPTURE,
+    GROOVY_CAPTURE
 }

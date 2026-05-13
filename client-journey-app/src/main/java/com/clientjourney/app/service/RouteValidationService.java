@@ -37,6 +37,10 @@ public class RouteValidationService {
             if (node.type() == NodeType.RESULT && (node.services() == null || node.services().isEmpty())) {
                 errors.add(new GraphValidationIssue("RESULT_WITHOUT_SERVICES", node.id(), "Result node must contain at least one service"));
             }
+            if ((node.type() == NodeType.API_CAPTURE || node.type() == NodeType.GROOVY_CAPTURE)
+                && (node.code() == null || node.code().isBlank())) {
+                errors.add(new GraphValidationIssue("CAPTURE_NODE_WITHOUT_CODE", node.id(), "Capture node must contain endpoint or script in code field"));
+            }
             if (node.answers() != null) {
                 Set<String> answerIds = new HashSet<>();
                 for (AnswerOption answer : node.answers()) {

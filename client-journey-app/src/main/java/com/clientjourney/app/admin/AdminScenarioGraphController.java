@@ -1,6 +1,9 @@
 package com.clientjourney.app.admin;
 
 import com.clientjourney.app.admin.dto.GraphValidationResult;
+import com.clientjourney.app.admin.dto.CapturePreviewRequest;
+import com.clientjourney.app.admin.dto.CapturePreviewResponse;
+import com.clientjourney.app.service.CapturePreviewService;
 import com.clientjourney.app.service.ScenarioGraphService;
 import com.clientjourney.domain.model.ScenarioGraph;
 import io.micronaut.http.annotation.*;
@@ -13,9 +16,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Controller("/api/admin/scenarios/{id}")
 public class AdminScenarioGraphController {
     private final ScenarioGraphService scenarioGraphService;
+    private final CapturePreviewService capturePreviewService;
 
-    public AdminScenarioGraphController(ScenarioGraphService scenarioGraphService) {
+    public AdminScenarioGraphController(ScenarioGraphService scenarioGraphService, CapturePreviewService capturePreviewService) {
         this.scenarioGraphService = scenarioGraphService;
+        this.capturePreviewService = capturePreviewService;
     }
 
     @Operation(summary = "Получить граф сценария")
@@ -34,5 +39,12 @@ public class AdminScenarioGraphController {
     @Post("/validate")
     public GraphValidationResult validate(UUID id) {
         return scenarioGraphService.validateGraph(id);
+    }
+
+    @Operation(summary = "Dry-run capture-узла графа")
+    @Post("/graph/capture-preview")
+    public CapturePreviewResponse capturePreview(UUID id, @Body CapturePreviewRequest request) {
+        ScenarioGraph graph = scenarioGraphService.getGraph(id);
+        return capturePreviewService.preview(graph, request);
     }
 }

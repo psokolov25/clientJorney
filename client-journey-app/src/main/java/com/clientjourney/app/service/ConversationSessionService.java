@@ -66,6 +66,27 @@ public class ConversationSessionService {
         ));
     }
 
+    public void mergeMetadata(UUID sessionId, Map<String, Object> additionalMetadata) {
+        SessionState state = sessions.get(sessionId);
+        if (state == null) {
+            throw new IllegalArgumentException("Session not found: " + sessionId);
+        }
+        Map<String, Object> updatedMetadata = new ConcurrentHashMap<>(state.metadata());
+        if (additionalMetadata != null) {
+            updatedMetadata.putAll(additionalMetadata);
+        }
+        sessions.put(sessionId, new SessionState(
+            state.scenarioCode(),
+            state.channel(),
+            state.externalUserId(),
+            updatedMetadata,
+            state.allowedServices(),
+            state.minSelectedServices(),
+            state.maxSelectedServices(),
+            state.selectedServices()
+        ));
+    }
+
     public record SessionState(
         String scenarioCode,
         String channel,

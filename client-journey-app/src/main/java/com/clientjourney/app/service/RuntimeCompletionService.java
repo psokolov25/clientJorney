@@ -19,15 +19,18 @@ public class RuntimeCompletionService {
     private final ServiceSelectionProcessor serviceSelectionProcessor;
     private final ConversationSessionService conversationSessionService;
     private final VisitCreationClient visitCreationClient;
+    private final VisitCreationSettingsService visitCreationSettingsService;
 
     public RuntimeCompletionService(
         ServiceSelectionProcessor serviceSelectionProcessor,
         ConversationSessionService conversationSessionService,
-        VisitCreationClient visitCreationClient
+        VisitCreationClient visitCreationClient,
+        VisitCreationSettingsService visitCreationSettingsService
     ) {
         this.serviceSelectionProcessor = serviceSelectionProcessor;
         this.conversationSessionService = conversationSessionService;
         this.visitCreationClient = visitCreationClient;
+        this.visitCreationSettingsService = visitCreationSettingsService;
     }
 
 
@@ -45,6 +48,22 @@ public class RuntimeCompletionService {
         Map<String, String> parameters = new HashMap<>();
         sessionState.metadata().forEach((key, value) -> parameters.put(key, String.valueOf(value)));
         parameters.put("selectedServicesCount", String.valueOf(selectedServices == null ? 0 : selectedServices.size()));
+        String branchId = parameters.getOrDefault("branchId", "");
+        String scenarioIdRaw = parameters.get("scenarioId");
+        if (scenarioIdRaw != null && !scenarioIdRaw.isBlank()) {
+            try {
+                UUID scenarioId = UUID.fromString(scenarioIdRaw);
+                var visitSettings = visitCreationSettingsService.get(scenarioId);
+                String resolvedBaseUrl = visitCreationSettingsService.resolveBaseUrl(scenarioId, branchId);
+                parameters.put("visitProvider", visitSettings.provider());
+                parameters.put("visitMode", visitSettings.mode());
+                if (resolvedBaseUrl != null && !resolvedBaseUrl.isBlank()) {
+                    parameters.put("visitBaseUrl", resolvedBaseUrl);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Ignore malformed scenarioId in metadata and continue with baseline flow.
+            }
+        }
 
         VisitCreationResult visit = visitCreationClient.createVisit(new VisitCreationRequest(
             sessionId,

@@ -74,4 +74,15 @@ class RouteValidationServiceTest {
         assertTrue(validation.errors().isEmpty());
         assertTrue(validation.warnings().isEmpty());
     }
+
+    @Test
+    void shouldDetectCaptureNodeWithoutCode() {
+        ScenarioNode start = new ScenarioNode("start", NodeType.START, "start", "start", List.of(), List.of());
+        ScenarioNode apiCapture = new ScenarioNode("api1", NodeType.API_CAPTURE, "", "Call API", List.of(new AnswerOption("a1", "ok", "OK", "r1")), List.of());
+        ScenarioNode result = new ScenarioNode("r1", NodeType.RESULT, "result", "Done", List.of(), List.of(new ServiceRef("svc1", "S1", "Service")));
+        ScenarioGraph graph = new ScenarioGraph(UUID.randomUUID(), 1, List.of(start, apiCapture, result), List.of(new ScenarioEdge("e1", "start", null, "api1")));
+
+        var validation = service.validate(graph);
+        assertTrue(validation.errors().stream().anyMatch(e -> e.code().equals("CAPTURE_NODE_WITHOUT_CODE")));
+    }
 }
