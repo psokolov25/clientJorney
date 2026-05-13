@@ -5,6 +5,13 @@ services:
     environment:
       - CJ_OBS_VISIT_PROVIDER_STATUS=UP
       - CJ_OBS_STORAGE_STATUS=UP
+      - CJ_TELEGRAM_BOT_TOKEN=test-bot-token
+      - CJ_TELEGRAM_DELIVERY_MODE=WEBHOOK
+      - CJ_TELEGRAM_WEBHOOK_URL=http://telegram-mock:8081/webhook
+      - CJ_TELEGRAM_POLLING_TIMEOUT=10
+      - CJ_TELEGRAM_ALLOWED_UPDATES=message,callback_query
+      - CJ_TELEGRAM_RETRY_MAX_ATTEMPTS=3
+      - CJ_TELEGRAM_RETRY_BASE_DELAY_MS=250
     ports:
       - "8080:8080"
   mock-provider:
@@ -12,3 +19,8 @@ services:
     command: ["-text=ok"]
     ports:
       - "5678:5678"
+  telegram-mock:
+    image: hashicorp/http-echo:1.0
+    command: ["-listen=:8081", "-text={\"ok\":true,\"result\":\"webhook-accepted\"}"]
+    ports:
+      - "8081:8081"

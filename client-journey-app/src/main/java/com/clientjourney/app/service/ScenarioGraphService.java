@@ -29,7 +29,15 @@ public class ScenarioGraphService {
     }
 
     public ScenarioGraph saveGraph(java.util.UUID scenarioId, ScenarioGraph graph) {
+        return saveGraphWithPrecondition(scenarioId, graph, null);
+    }
+
+    public ScenarioGraph saveGraphWithPrecondition(java.util.UUID scenarioId, ScenarioGraph graph, Integer expectedVersion) {
         Scenario scenario = scenarioService.findById(scenarioId);
+        if (expectedVersion != null && expectedVersion != scenario.version()) {
+            throw new HttpStatusException(HttpStatus.CONFLICT,
+                "Scenario graph version conflict: expected " + expectedVersion + ", actual " + scenario.version());
+        }
         ScenarioGraph normalized = new ScenarioGraph(scenarioId, scenario.version(), graph.nodes(), graph.edges());
         return scenarioGraphRepository.save(normalized);
     }

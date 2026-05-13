@@ -41,9 +41,43 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/groovy/groovy.min.js"></script>
 <script type="text/babel">
 const {useMemo, useState, useCallback, useRef} = React;
-const {ReactFlow, Background, Controls, MiniMap, addEdge, applyNodeChanges, applyEdgeChanges, Handle, Position} = window.ReactFlow;
+const {ReactFlow, Background, Controls, MiniMap, addEdge, applyNodeChanges, applyEdgeChanges, Handle, Position, BaseEdge, EdgeLabelRenderer, getBezierPath} = window.ReactFlow;
+
+function QuestionNode({data}) {
+  return (
+    <div>
+      <Handle type="target" position={Position.Left} />
+      <strong>{data.label}</strong>
+      <div>{data.text}</div>
+      <div className="hint">Answers: {data.answerCount || 0}</div>
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+}
+
+function ResultNode({data}) {
+  return (
+    <div>
+      <Handle type="target" position={Position.Left} />
+      <strong>{data.label}</strong>
+      <div>{data.text}</div>
+      <div className="hint">Final node</div>
+    </div>
+  );
+}
 
 function App(){
+  const DRAFT_STORAGE_PREFIX = 'cj-admin-graph-draft:';
+  const PHASES = {
+    PHASE_0: 'PHASE_0',
+    PHASE_1: 'PHASE_1',
+    PHASE_2: 'PHASE_2'
+  };
+  const PHASE_NODE_CAPABILITIES = {
+    PHASE_0: { serviceSelection: true, apiCapture: true, groovyCapture: true, biometryChain: true },
+    PHASE_1: { serviceSelection: true, apiCapture: false, groovyCapture: false, biometryChain: false },
+    PHASE_2: { serviceSelection: false, apiCapture: false, groovyCapture: false, biometryChain: false }
+  };
   const [nodes, setNodes] = useState([
     { id:'start', type:'question', data:{ label:'start', text:'How can we help?' }, position:{x:100,y:120}},
     { id:'q-service', type:'question', data:{ label:'q-service', text:'Choose service' }, position:{x:450,y:120}},
@@ -61,6 +95,9 @@ function App(){
   const [flowJson, setFlowJson] = useState('');
   const [status, setStatus] = useState('Ready');
   const [scenarioId, setScenarioId] = useState('');
+  const [graphVersion, setGraphVersion] = useState(1);
+  const [editorPhase, setEditorPhase] = useState(PHASES.PHASE_0);
+  const [graphEtag, setGraphEtag] = useState('');
   const [selectedNodeText, setSelectedNodeText] = useState('How can we help?');
   const [selectedEdgeCode, setSelectedEdgeCode] = useState('');
   const [selectedEdgeLabel, setSelectedEdgeLabel] = useState('');
@@ -69,15 +106,109 @@ function App(){
   const [capturePreviewOutput, setCapturePreviewOutput] = useState('');
   const [capturePreviewMetadata, setCapturePreviewMetadata] = useState('{"fromEditor":true,"capture.nextInput":null}');
   const [selectedNodeCode, setSelectedNodeCode] = useState('');
+  const [selectedServiceRefs, setSelectedServiceRefs] = useState('svc-demo-1,svc-demo-2');
+  const [apiMethod, setApiMethod] = useState('POST');
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiPayloadField, setApiPayloadField] = useState('answerValue');
+  const [apiNextInputField, setApiNextInputField] = useState('nextInput');
+  const [validationIssues, setValidationIssues] = useState([]);
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  const [draftConflictHint, setDraftConflictHint] = useState('');
+  const [baselineGraphJson, setBaselineGraphJson] = useState('');
+  const [diffPreviewOutput, setDiffPreviewOutput] = useState('');
+  const [historyPast, setHistoryPast] = useState([]);
+  const [historyFuture, setHistoryFuture] = useState([]);
   const groovyEditorHostRef = useRef(null);
   const groovyEditorRef = useRef(null);
+  const suppressDirtyRef = useRef(false);
+  const suppressHistoryRef = useRef(false);
+  const lastSnapshotRef = useRef('');
+  const answerEdgeType = useMemo(() => ({
+    answerEdge: (props) => {
+      const [path, labelX, labelY] = getBezierPath(props);
+      return (
+        <>
+          <BaseEdge path={path} />
+          <EdgeLabelRenderer>
+            <button
+              style={{
+                position: 'absolute',
+                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+                pointerEvents: 'all',
+                border: '1px solid #cbd4e4',
+                background: '#fff',
+                color: '#324157',
+                borderRadius: '999px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+              onClick={(evt) => {
+                evt.stopPropagation();
+                setSelectedEdgeId(props.id);
+                setSelectedNodeId('');
+              }}
+            >
+              {props.label || 'next'}
+            </button>
+          </EdgeLabelRenderer>
+        </>
+      );
+    }
+  }), []);
+  const phaseCapabilities = PHASE_NODE_CAPABILITIES[editorPhase] || PHASE_NODE_CAPABILITIES.PHASE_0;
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const selectedEdge = edges.find(e => e.id === selectedEdgeId);
+  const draftStorageKey = `${DRAFT_STORAGE_PREFIX}${scenarioId || '__no_scenario__'}`;
 
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
   const onConnect = useCallback((params) => setEdges((eds) => addEdge({ ...params, label: 'next' }, eds)), []);
+
+  const snapshotState = () => ({
+    nodes,
+    edges,
+    scenarioId,
+    graphVersion,
+    graphEtag,
+  });
+
+  const restoreSnapshot = (snapshot) => {
+    suppressHistoryRef.current = true;
+    suppressDirtyRef.current = true;
+    setNodes(snapshot.nodes || []);
+    setEdges(snapshot.edges || []);
+    setScenarioId(snapshot.scenarioId || '');
+    setGraphVersion(snapshot.graphVersion || 1);
+    setGraphEtag(snapshot.graphEtag || '');
+  };
+
+  const undoGraphChange = () => {
+    if (!historyPast.length) return setStatus('Undo history is empty');
+    const previous = historyPast[historyPast.length - 1];
+    const current = snapshotState();
+    setHistoryPast((prev) => prev.slice(0, -1));
+    setHistoryFuture((prev) => [...prev, current]);
+    restoreSnapshot(previous);
+    setStatus('Undo applied');
+  };
+
+  const redoGraphChange = () => {
+    if (!historyFuture.length) return setStatus('Redo history is empty');
+    const next = historyFuture[historyFuture.length - 1];
+    const current = snapshotState();
+    setHistoryFuture((prev) => prev.slice(0, -1));
+    setHistoryPast((prev) => [...prev, current]);
+    restoreSnapshot(next);
+    setStatus('Redo applied');
+  };
+  const resetHistory = () => {
+    setHistoryPast([]);
+    setHistoryFuture([]);
+    lastSnapshotRef.current = '';
+  };
 
   const addQuestionNode = () => {
     const id = `q-${Math.random().toString(36).slice(2,7)}`;
@@ -94,7 +225,7 @@ function App(){
     setNodes(prev => [...prev, {
       id,
       type:'serviceSelection',
-      data:{label:id, text:'Select one or more services', selectionMode:'USER_SELECTABLE_SERVICES'},
+      data:{label:id, text:'Select one or more services', selectionMode:'USER_SELECTABLE_SERVICES', serviceRefs:['svc-demo-1','svc-demo-2']},
       position:{x:560, y:300 + prev.length*20}
     }]);
   };
@@ -163,6 +294,22 @@ function App(){
       ? { ...node, data: { ...node.data, captureCode: selectedNodeCode } }
       : node));
     setStatus(`Node code updated for ${selectedNodeId}`);
+  };
+  const applyApiCaptureConfig = () => {
+    if (!selectedNodeId || !selectedNode || selectedNode.type !== 'apiCapture') return setStatus('Select API_CAPTURE node first');
+    if (!apiUrl.trim()) return setStatus('API URL is required');
+    const config = {
+      url: apiUrl.trim(),
+      method: (apiMethod || 'POST').trim().toUpperCase(),
+      payloadField: (apiPayloadField || 'answerValue').trim(),
+      nextInputField: (apiNextInputField || 'nextInput').trim()
+    };
+    const code = JSON.stringify(config, null, 2);
+    setSelectedNodeCode(code);
+    setNodes(prev => prev.map(node => node.id === selectedNodeId
+      ? { ...node, data: { ...node.data, captureCode: code } }
+      : node));
+    setStatus(`API_CAPTURE config updated for ${selectedNodeId}`);
   };
 
   const applyEdgeLabel = () => {
@@ -236,6 +383,19 @@ function App(){
     setStatus(`Added RESULT ${newId} from ${selectedNodeId}`);
   };
 
+  const addServiceSelectionFromSelected = () => {
+    if (!selectedNodeId) return setStatus('Select source node first');
+    const newId = `svc-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, {
+      id:newId,
+      type:'serviceSelection',
+      data:{label:newId, text:'Select service(s)', selectionMode:'USER_SELECTABLE_SERVICES', serviceRefs:['svc-demo-1','svc-demo-2']},
+      position:{x:640, y:240 + prev.length * 25}
+    }]);
+    setEdges(prev => [...prev, { id:`e-${selectedNodeId}-${newId}-next`, source:selectedNodeId, target:newId, label:'next:Select service' }]);
+    setStatus(`Added SERVICE_SELECTION ${newId} from ${selectedNodeId}`);
+  };
+
   const applyAutoLayout = () => {
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'LR', nodesep: 56, ranksep: 120 });
@@ -259,16 +419,34 @@ function App(){
   const isCaptureType = (nodeType) => nodeType === 'apiCapture' || nodeType === 'groovyCapture';
 
   const validateFlow = (nodesArg = nodes, edgesArg = edges) => {
+    const issues = [];
+    const disallowedNodeMessages = [];
+    if (!phaseCapabilities.serviceSelection) {
+      const ids = nodesArg.filter(n => n.type === 'serviceSelection').map(n => n.id);
+      if (ids.length) disallowedNodeMessages.push(`SERVICE_SELECTION not allowed in ${editorPhase}: ${ids.join(', ')}`);
+    }
+    if (!phaseCapabilities.apiCapture) {
+      const ids = nodesArg.filter(n => n.type === 'apiCapture').map(n => n.id);
+      if (ids.length) disallowedNodeMessages.push(`API_CAPTURE not allowed in ${editorPhase}: ${ids.join(', ')}`);
+    }
+    if (!phaseCapabilities.groovyCapture) {
+      const ids = nodesArg.filter(n => n.type === 'groovyCapture').map(n => n.id);
+      if (ids.length) disallowedNodeMessages.push(`GROOVY_CAPTURE not allowed in ${editorPhase}: ${ids.join(', ')}`);
+    }
+    if (disallowedNodeMessages.length) {
+      issues.push(`Phase capability violations: ${disallowedNodeMessages.join(' | ')}`);
+    }
+
     const ids = new Set(nodesArg.map(n => n.id));
     for (const e of edgesArg) {
-      if (!ids.has(e.source) || !ids.has(e.target)) return `Broken edge ${e.id}`;
+      if (!ids.has(e.source) || !ids.has(e.target)) issues.push(`Broken edge ${e.id}`);
     }
     const hasResult = nodesArg.some(n => n.type === 'result');
 
     const captureWithoutCode = nodesArg
       .filter(n => isCaptureType(n.type) && !String(n.data?.captureCode || '').trim())
       .map(n => n.id);
-    if (captureWithoutCode.length) return `Capture nodes without code: ${captureWithoutCode.join(', ')}`;
+    if (captureWithoutCode.length) issues.push(`Capture nodes without code: ${captureWithoutCode.join(', ')}`);
 
     const duplicateAnswerCodes = [];
     nodesArg.forEach((n) => {
@@ -283,11 +461,51 @@ function App(){
         seen.add(normalized);
       });
     });
-    if (duplicateAnswerCodes.length) return `Duplicate answer codes for node: ${duplicateAnswerCodes.join(', ')}`;
-    if (!hasResult) return 'At least one RESULT node is required';
+    if (duplicateAnswerCodes.length) issues.push(`Duplicate answer codes for node: ${duplicateAnswerCodes.join(', ')}`);
+    if (!hasResult) issues.push('At least one RESULT node is required');
 
-    const start = nodesArg.find(n => n.id === 'start') || nodesArg[0];
-    if (!start) return 'Graph has no nodes';
+    const captureRoutingIssues = [];
+    nodesArg
+      .filter(n => isCaptureType(n.type))
+      .forEach((node) => {
+        const outgoing = edgesArg.filter(e => e.source === node.id);
+        if (outgoing.length === 0) captureRoutingIssues.push(`${node.id}: must have at least one outgoing transition`);
+        const invalidCodes = outgoing
+          .map(e => String(e.label || 'next').split(':')[0] || 'next')
+          .filter(code => String(code).trim() !== 'next' && String(code).trim() !== '__default__');
+        if (invalidCodes.length) captureRoutingIssues.push(`${node.id}: invalid capture transition code(s): ${invalidCodes.join(', ')}`);
+      });
+    if (captureRoutingIssues.length) issues.push(`Capture routing issues: ${captureRoutingIssues.join(' | ')}`);
+
+    const serviceSelectionIssues = [];
+    nodesArg
+      .filter(n => n.type === 'serviceSelection')
+      .forEach((node) => {
+        const refs = Array.isArray(node.data?.serviceRefs) ? node.data.serviceRefs : [];
+        if (refs.length === 0) serviceSelectionIssues.push(`${node.id}: serviceRefs must not be empty`);
+      });
+    if (serviceSelectionIssues.length) issues.push(`Service selection issues: ${serviceSelectionIssues.join(' | ')}`);
+
+    const explicitStart = nodesArg.find(n => n.id === 'start');
+    if (!explicitStart) {
+      issues.push('Start node with id "start" is required');
+    } else if (explicitStart.type === 'result') {
+      issues.push('Start node cannot be RESULT');
+    }
+    const start = explicitStart || nodesArg[0];
+    if (!start) issues.push('Graph has no nodes');
+
+    const questionWithoutOutgoing = nodesArg
+      .filter(n => n.type === 'question')
+      .filter(n => edgesArg.every(e => e.source !== n.id))
+      .map(n => n.id);
+    if (questionWithoutOutgoing.length) issues.push(`QUESTION nodes without outgoing transitions: ${questionWithoutOutgoing.join(', ')}`);
+
+    const serviceSelectionWithoutOutgoing = nodesArg
+      .filter(n => n.type === 'serviceSelection')
+      .filter(n => edgesArg.every(e => e.source !== n.id))
+      .map(n => n.id);
+    if (serviceSelectionWithoutOutgoing.length) issues.push(`SERVICE_SELECTION nodes without outgoing transitions: ${serviceSelectionWithoutOutgoing.join(', ')}`);
     const adjacency = new Map(nodesArg.map(n => [n.id, []]));
     edgesArg.forEach(e => adjacency.get(e.source)?.push(e.target));
 
@@ -301,7 +519,7 @@ function App(){
     }
 
     const unreachable = nodesArg.filter(n => !visited.has(n.id)).map(n => n.id);
-    if (unreachable.length) return `Unreachable nodes: ${unreachable.join(', ')}`;
+    if (unreachable.length) issues.push(`Unreachable nodes: ${unreachable.join(', ')}`);
 
     const reachesResult = (nodeId, seen = new Set()) => {
       if (seen.has(nodeId)) return false;
@@ -313,15 +531,15 @@ function App(){
     };
 
     const deadEnds = nodesArg.filter(n => n.type !== 'result' && !reachesResult(n.id)).map(n => n.id);
-    if (deadEnds.length) return `Nodes without path to RESULT: ${deadEnds.join(', ')}`;
+    if (deadEnds.length) issues.push(`Nodes without path to RESULT: ${deadEnds.join(', ')}`);
 
-    return '';
+    return issues;
   };
 
-  const toScenarioGraph = () => ({
-    scenarioId: scenarioId || null,
-    version: 1,
-    nodes: nodes.map(n => ({
+  const reactFlowElementsToScenarioGraph = ({ nodesArg, edgesArg, scenarioIdArg, versionArg }) => ({
+    scenarioId: scenarioIdArg || null,
+    version: versionArg,
+    nodes: nodesArg.map(n => ({
       id: n.id,
       type: n.type === 'result' ? 'RESULT'
         : (n.type === 'serviceSelection' ? 'SERVICE_SELECTION'
@@ -329,13 +547,15 @@ function App(){
                 : (n.type === 'groovyCapture' ? 'GROOVY_CAPTURE' : 'QUESTION'))),
       code: (n.type === 'apiCapture' || n.type === 'groovyCapture') ? (n.data?.captureCode || '') : n.id,
       text: n.data?.text || n.data?.label || n.id,
-      answers: edges.filter(e => e.source === n.id).map(e => {
+      answers: edgesArg.filter(e => e.source === n.id).map(e => {
         const [code, ...labelParts] = String(e.label || 'next').split(':');
         return { id: code || 'next', text: labelParts.join(':') || code || 'next' };
       }),
-      services: n.type === 'serviceSelection' ? ['svc-demo-1', 'svc-demo-2'] : []
+      services: n.type === 'serviceSelection'
+        ? (Array.isArray(n.data?.serviceRefs) && n.data.serviceRefs.length ? n.data.serviceRefs : ['svc-demo-1', 'svc-demo-2'])
+        : []
     })),
-    edges: edges.map(e => ({
+    edges: edgesArg.map(e => ({
       id: e.id,
       sourceNodeId: e.source,
       sourceAnswerId: String(e.label || 'next').split(':')[0] || 'next',
@@ -343,7 +563,14 @@ function App(){
     }))
   });
 
-  const fromScenarioGraph = (payload) => {
+  const toScenarioGraph = () => reactFlowElementsToScenarioGraph({
+    nodesArg: nodes,
+    edgesArg: edges,
+    scenarioIdArg: scenarioId,
+    versionArg: graphVersion
+  });
+
+  const scenarioGraphToReactFlowElements = (payload) => {
     if (!payload || !Array.isArray(payload.nodes)) throw new Error('JSON must contain nodes[]');
     const restoredNodes = payload.nodes.map((n, idx) => ({
       id: n.id,
@@ -351,7 +578,12 @@ function App(){
         : (n.type === 'SERVICE_SELECTION' ? 'serviceSelection'
             : (n.type === 'API_CAPTURE' ? 'apiCapture'
                 : (n.type === 'GROOVY_CAPTURE' ? 'groovyCapture' : 'question'))),
-      data: { label: n.code || n.id, text: n.text || n.id, captureCode: (n.type === 'API_CAPTURE' || n.type === 'GROOVY_CAPTURE') ? (n.code || '') : '' },
+      data: {
+        label: n.code || n.id,
+        text: n.text || n.id,
+        captureCode: (n.type === 'API_CAPTURE' || n.type === 'GROOVY_CAPTURE') ? (n.code || '') : '',
+        serviceRefs: n.type === 'SERVICE_SELECTION' ? (Array.isArray(n.services) ? n.services : []) : undefined
+      },
       position: { x: 150 + (idx % 3) * 320, y: 120 + Math.floor(idx / 3) * 180 }
     }));
     const answerMap = new Map();
@@ -364,27 +596,86 @@ function App(){
       target: e.targetNodeId,
       label: `${e.sourceAnswerId}:${answerMap.get(`${e.sourceNodeId}:${e.sourceAnswerId}`) || e.sourceAnswerId}`
     }));
-    return { restoredNodes, restoredEdges, restoredScenarioId: payload.scenarioId || '' };
+    return { restoredNodes, restoredEdges, restoredScenarioId: payload.scenarioId || '', restoredVersion: Number(payload.version || 1) };
   };
+
+  const fromScenarioGraph = (payload) => scenarioGraphToReactFlowElements(payload);
 
   const exportFlow = () => {
     const payload = toScenarioGraph();
     const json = JSON.stringify(payload, null, 2);
     setFlowJson(json);
     navigator.clipboard.writeText(json);
-    const err = validateFlow();
-    setStatus(err ? `Validation error: ${err}` : 'Flow exported and copied to clipboard');
+    const issues = validateFlow();
+    setValidationIssues(issues);
+    setStatus(issues.length ? `Validation error (${issues.length})` : 'Flow exported and copied to clipboard');
+  };
+
+  const flattenForDiff = (value, path = '$', output = {}) => {
+    if (Array.isArray(value)) {
+      value.forEach((item, idx) => flattenForDiff(item, `${path}[${idx}]`, output));
+      if (value.length === 0) output[path] = '[]';
+      return output;
+    }
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value);
+      if (entries.length === 0) output[path] = '{}';
+      entries.forEach(([k, v]) => flattenForDiff(v, `${path}.${k}`, output));
+      return output;
+    }
+    output[path] = JSON.stringify(value);
+    return output;
+  };
+
+  const generateDiffPreviewText = (baseObj, currentObj) => {
+    const baseFlat = flattenForDiff(baseObj);
+    const currentFlat = flattenForDiff(currentObj);
+    const keys = Array.from(new Set([...Object.keys(baseFlat), ...Object.keys(currentFlat)])).sort();
+    const diffs = [];
+    keys.forEach((key) => {
+      const b = baseFlat[key];
+      const c = currentFlat[key];
+      if (b !== c) diffs.push(`${key}\n- ${b ?? '<missing>'}\n+ ${c ?? '<missing>'}`);
+    });
+    return {
+      preview: diffs.length ? diffs.slice(0, 120).join('\n\n') : 'No differences vs baseline.',
+      changedPaths: diffs.length
+    };
+  };
+
+  const buildDiffPreview = () => {
+    const currentJson = JSON.stringify(toScenarioGraph(), null, 2);
+    if (!baselineGraphJson) {
+      setDiffPreviewOutput('Baseline is empty. Load or save graph first to compare changes.');
+      return setStatus('Diff preview generated (no baseline)');
+    }
+    let baseObj;
+    let currentObj;
+    try {
+      baseObj = JSON.parse(baselineGraphJson);
+      currentObj = JSON.parse(currentJson);
+    } catch (parseErr) {
+      setDiffPreviewOutput(`Diff parse error: ${parseErr.message}`);
+      return setStatus('Diff preview failed');
+    }
+    const result = generateDiffPreviewText(baseObj, currentObj);
+    setDiffPreviewOutput(result.preview);
+    setStatus(`Diff preview generated (${result.changedPaths} changed path(s) shown)`);
   };
 
   const importFlow = () => {
     try {
       const parsed = JSON.parse(flowJson);
-      const { restoredNodes, restoredEdges, restoredScenarioId } = fromScenarioGraph(parsed);
-      const err = validateFlow(restoredNodes, restoredEdges);
+      const { restoredNodes, restoredEdges, restoredScenarioId, restoredVersion } = fromScenarioGraph(parsed);
+      const issues = validateFlow(restoredNodes, restoredEdges);
       setNodes(restoredNodes);
       setEdges(restoredEdges);
       setScenarioId(restoredScenarioId);
-      setStatus(err ? `Imported with validation error: ${err}` : 'Flow imported successfully');
+      setGraphVersion(restoredVersion);
+      setValidationIssues(issues);
+      setBaselineGraphJson(JSON.stringify(parsed, null, 2));
+      resetHistory();
+      setStatus(issues.length ? `Imported with validation error (${issues.length})` : 'Flow imported successfully');
     } catch (e) {
       setStatus(`Import failed: ${e.message}`);
     }
@@ -392,13 +683,37 @@ function App(){
 
   const loadFromApi = async () => {
     if (!scenarioId) return setStatus('Scenario ID is required');
+    if (isDirty && !confirm('You have unsaved changes. Continue loading and discard current edits?')) return;
     try {
       const res = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph`);
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.message || 'Load failed');
-      const { restoredNodes, restoredEdges, restoredScenarioId } = fromScenarioGraph(payload);
+      setGraphEtag(res.headers.get('etag') || '');
+      const { restoredNodes, restoredEdges, restoredScenarioId, restoredVersion } = fromScenarioGraph(payload);
       setNodes(restoredNodes); setEdges(restoredEdges); setScenarioId(restoredScenarioId || scenarioId);
+      setGraphVersion(restoredVersion);
       setFlowJson(JSON.stringify(payload, null, 2));
+      setBaselineGraphJson(JSON.stringify(payload, null, 2));
+      resetHistory();
+      const metaRaw = localStorage.getItem(`${draftStorageKey}:meta`);
+      if (metaRaw) {
+        try {
+          const meta = JSON.parse(metaRaw);
+          const localVersion = Number(meta.version || 0);
+          const serverVersion = Number(restoredVersion || 0);
+          if (localVersion > serverVersion) {
+            setDraftConflictHint(`Local draft is newer (v${localVersion}) than server graph (v${serverVersion}). Consider "Load draft locally".`);
+          } else {
+            setDraftConflictHint('');
+          }
+        } catch (_) {
+          setDraftConflictHint('');
+        }
+      } else {
+        setDraftConflictHint('');
+      }
+      suppressDirtyRef.current = true;
+      setIsDirty(false);
       setStatus('Loaded graph from API');
     } catch (e) { setStatus(`Load failed: ${e.message}`); }
   };
@@ -407,16 +722,75 @@ function App(){
     if (!scenarioId) return setStatus('Scenario ID is required');
     try {
       const payload = toScenarioGraph();
-      const err = validateFlow();
-      if (err) return setStatus(`Save blocked by validation: ${err}`);
+      const issues = validateFlow();
+      setValidationIssues(issues);
+      setDraftConflictHint('');
+      if (issues.length) return setStatus(`Save blocked by validation (${issues.length})`);
       const res = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'If-Match': graphEtag || String(graphVersion),
+          'X-Scenario-Graph-Version': String(graphVersion)
+        },
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
+      if (res.status === 409) {
+        const parseServerVersion = () => {
+          const direct = Number(data?.version);
+          if (Number.isFinite(direct) && direct > 0) return direct;
+          const msg = String(data?.message || '');
+          const m = msg.match(/actual\s+(\d+)/i) || msg.match(/server(?:\s+has)?\s+(\d+)/i);
+          return m ? Number(m[1]) : 0;
+        };
+        try {
+          localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+          localStorage.setItem(`${draftStorageKey}:meta`, JSON.stringify({
+            scenarioId,
+            version: graphVersion,
+            savedAt: new Date().toISOString()
+          }));
+        } catch (_) {
+          // ignore localStorage failures; conflict UX should still proceed
+        }
+        const serverVersion = parseServerVersion();
+        setDraftConflictHint(`Version conflict: local v${graphVersion}, server v${serverVersion}. Local draft was preserved.`);
+        try {
+          const latestRes = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph`);
+          const latestPayload = await latestRes.json();
+          if (latestRes.ok) {
+            const conflictDiff = generateDiffPreviewText(latestPayload, payload);
+            setDiffPreviewOutput(
+              `Conflict diff (server -> local):\n${conflictDiff.preview}`
+            );
+          }
+        } catch (_) {
+          // best-effort only
+        }
+        setStatus(`Save conflict: local draft preserved. Server graph is v${serverVersion}.`);
+        if (confirm(`Server graph changed (server v${serverVersion}, local v${graphVersion}). Load latest from API now?`)) {
+          await loadFromApi();
+        }
+        return;
+      }
       if (!res.ok) throw new Error(data.message || 'Save failed');
+      setGraphEtag(res.headers.get('etag') || graphEtag);
+      setGraphVersion(Number(data.version || graphVersion + 1));
       setFlowJson(JSON.stringify(data, null, 2));
+      setBaselineGraphJson(JSON.stringify(data, null, 2));
+      resetHistory();
+      suppressDirtyRef.current = true;
+      setIsDirty(false);
       setStatus('Saved graph to API');
     } catch (e) { setStatus(`Save failed: ${e.message}`); }
+  };
+
+  const validateBeforePublish = () => {
+    const issues = validateFlow();
+    setValidationIssues(issues);
+    if (issues.length) return setStatus(`Publish blocked by validation (${issues.length})`);
+    setStatus('Publish gate passed: graph is valid for activation');
   };
 
   const previewCaptureNode = async () => {
@@ -450,24 +824,47 @@ function App(){
     }
   };
 
+  const saveDraftToLocalStorage = () => {
+    try {
+      const payload = toScenarioGraph();
+      localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+      const ts = new Date().toISOString();
+      setLastDraftSavedAt(ts);
+      localStorage.setItem(`${draftStorageKey}:meta`, JSON.stringify({ updatedAt: ts, version: graphVersion }));
+      setStatus(`Draft saved locally (${draftStorageKey})`);
+    } catch (e) {
+      setStatus(`Draft save failed: ${e.message}`);
+    }
+  };
+
+  const loadDraftFromLocalStorage = () => {
+    try {
+      const raw = localStorage.getItem(draftStorageKey);
+      if (!raw) return setStatus(`Draft not found (${draftStorageKey})`);
+      const parsed = JSON.parse(raw);
+      const { restoredNodes, restoredEdges, restoredScenarioId, restoredVersion } = fromScenarioGraph(parsed);
+      const issues = validateFlow(restoredNodes, restoredEdges);
+      setNodes(restoredNodes);
+      setEdges(restoredEdges);
+      setScenarioId(restoredScenarioId || scenarioId);
+      setGraphVersion(restoredVersion);
+      setValidationIssues(issues);
+      resetHistory();
+      suppressDirtyRef.current = true;
+      setIsDirty(false);
+      const metaRaw = localStorage.getItem(`${draftStorageKey}:meta`);
+      if (metaRaw) {
+        try { setLastDraftSavedAt(JSON.parse(metaRaw).updatedAt || ''); } catch (_) {}
+      }
+      setStatus(issues.length ? `Draft loaded with validation issue(s): ${issues.length}` : 'Draft loaded from local storage');
+    } catch (e) {
+      setStatus(`Draft load failed: ${e.message}`);
+    }
+  };
+
   const nodeTypes = useMemo(() => ({
-    question: ({data}) => (
-      <div>
-        <Handle type="target" position={Position.Left} />
-        <strong>{data.label}</strong>
-        <div>{data.text}</div>
-        <div className="hint">Answers: {(edges.filter(e => e.source === data.label).length)}</div>
-        <Handle type="source" position={Position.Right} />
-      </div>
-    ),
-    result: ({data}) => (
-      <div>
-        <Handle type="target" position={Position.Left} />
-        <strong>{data.label}</strong>
-        <div>{data.text}</div>
-        <div className="hint">Final node</div>
-      </div>
-    ),
+    question: QuestionNode,
+    result: ResultNode,
     serviceSelection: ({data}) => (
       <div>
         <Handle type="target" position={Position.Left} />
@@ -497,10 +894,40 @@ function App(){
     ),
   }), [edges]);
 
+  const displayNodes = useMemo(() => {
+    const answerCountBySource = new Map();
+    edges.forEach((edge) => answerCountBySource.set(edge.source, (answerCountBySource.get(edge.source) || 0) + 1));
+    return nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        answerCount: answerCountBySource.get(node.id) || 0
+      }
+    }));
+  }, [nodes, edges]);
+
+  const displayEdges = useMemo(() => edges.map((edge) => ({ ...edge, type: 'answerEdge' })), [edges]);
+
   React.useEffect(() => {
     if (selectedNode) {
       setSelectedNodeText(selectedNode.data?.text || '');
       setSelectedNodeCode(selectedNode.data?.captureCode || '');
+      setSelectedServiceRefs(Array.isArray(selectedNode.data?.serviceRefs) ? selectedNode.data.serviceRefs.join(',') : '');
+      if (selectedNode.type === 'apiCapture') {
+        const rawCode = String(selectedNode.data?.captureCode || '').trim();
+        try {
+          const parsed = rawCode ? JSON.parse(rawCode) : {};
+          setApiMethod(String(parsed.method || 'POST').toUpperCase());
+          setApiUrl(String(parsed.url || ''));
+          setApiPayloadField(String(parsed.payloadField || 'answerValue'));
+          setApiNextInputField(String(parsed.nextInputField || 'nextInput'));
+        } catch (_) {
+          setApiMethod('POST');
+          setApiUrl(rawCode && !rawCode.startsWith('{') ? rawCode : '');
+          setApiPayloadField('answerValue');
+          setApiNextInputField('nextInput');
+        }
+      }
     }
   }, [selectedNodeId]);
 
@@ -533,28 +960,124 @@ function App(){
     }
   }, [selectedEdgeId]);
 
+  React.useEffect(() => {
+    const timerId = setTimeout(() => {
+      try {
+        const payload = toScenarioGraph();
+        localStorage.setItem(draftStorageKey, JSON.stringify(payload));
+        const ts = new Date().toISOString();
+        setLastDraftSavedAt(ts);
+        localStorage.setItem(`${draftStorageKey}:meta`, JSON.stringify({ updatedAt: ts, version: graphVersion }));
+      } catch (_) {
+        // keep UI responsive; explicit save/load buttons surface detailed errors
+      }
+    }, 1200);
+    return () => clearTimeout(timerId);
+  }, [nodes, edges, scenarioId, graphVersion]);
+
+  React.useEffect(() => {
+    const serialized = JSON.stringify({
+      nodes,
+      edges,
+      scenarioId,
+      graphVersion,
+      graphEtag,
+    });
+    if (serialized === lastSnapshotRef.current) return;
+    if (suppressHistoryRef.current) {
+      suppressHistoryRef.current = false;
+      lastSnapshotRef.current = serialized;
+      return;
+    }
+    const previousSnapshot = lastSnapshotRef.current ? JSON.parse(lastSnapshotRef.current) : null;
+    setHistoryPast((prev) => {
+      const next = previousSnapshot ? [...prev, previousSnapshot] : prev;
+      return next.length > 100 ? next.slice(next.length - 100) : next;
+    });
+    setHistoryFuture([]);
+    lastSnapshotRef.current = serialized;
+  }, [nodes, edges, scenarioId, graphVersion, graphEtag]);
+
+  React.useEffect(() => {
+    const onKeyDown = (event) => {
+      const key = String(event.key || '').toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undoGraphChange();
+      } else if ((event.ctrlKey || event.metaKey) && (key === 'y' || (key === 'z' && event.shiftKey))) {
+        event.preventDefault();
+        redoGraphChange();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [historyPast, historyFuture, nodes, edges, scenarioId, graphVersion, graphEtag]);
+
+  React.useEffect(() => {
+    if (suppressDirtyRef.current) {
+      suppressDirtyRef.current = false;
+      return;
+    }
+    setIsDirty(true);
+  }, [nodes, edges, graphVersion]);
+
   return (
     <>
       <section className="panel">
         <h3>Editor controls</h3>
         <p className="hint">Phase 0: React Flow editor + side panel + import/export.</p>
+        <div className="field">
+          <label>Editor phase</label>
+          <select value={editorPhase} onChange={(e)=>setEditorPhase(e.target.value)}>
+            <option value={PHASES.PHASE_0}>Phase 0 (full graph authoring)</option>
+            <option value={PHASES.PHASE_1}>Phase 1 (QUESTION/RESULT + SERVICE_SELECTION)</option>
+            <option value={PHASES.PHASE_2}>Phase 2 (QUESTION/RESULT only)</option>
+          </select>
+        </div>
+        <p className="hint">Active phase limits available node/tool actions to avoid out-of-scope graph structures.</p>
         <div className="field"><label>Scenario ID</label><input value={scenarioId} onChange={(e)=>setScenarioId(e.target.value)} placeholder="UUID" /></div>
+        <div className="field"><label>Graph version</label><input value={graphVersion} onChange={(e)=>setGraphVersion(Number(e.target.value || 1))} /></div>
+        <div className="field"><label>Graph ETag</label><input value={graphEtag} onChange={(e)=>setGraphEtag(e.target.value)} placeholder="W/\"...\" or hash" /></div>
+        <div className="field"><label>Dirty state</label><input value={isDirty ? 'UNSAVED_CHANGES' : 'SYNCED'} readOnly /></div>
         <div className="field"><button className="secondary" onClick={loadFromApi}>Load from API</button></div>
         <div className="field"><button className="secondary" onClick={saveToApi}>Save to API</button></div>
+        <div className="field"><button className="secondary" onClick={saveDraftToLocalStorage}>Save draft locally</button></div>
+        <div className="field"><button className="secondary" onClick={loadDraftFromLocalStorage}>Load draft locally</button></div>
+        <div className="field"><label>Last local draft save (UTC)</label><input value={lastDraftSavedAt} readOnly /></div>
+        {draftConflictHint && <p className="hint" style={{color:'#9a5d00'}}>{draftConflictHint}</p>}
+        <div className="field"><button className="secondary" onClick={validateBeforePublish}>Publish gate check</button></div>
+        <div className="field"><button className="secondary" onClick={undoGraphChange}>Undo</button></div>
+        <div className="field"><button className="secondary" onClick={redoGraphChange}>Redo</button></div>
+        <p className="hint">History: undo {historyPast.length} / redo {historyFuture.length} (Ctrl/Cmd+Z, Ctrl/Cmd+Y)</p>
+        <div className="field"><button className="secondary" onClick={buildDiffPreview}>Diff preview vs baseline</button></div>
         <div className="field"><button onClick={addQuestionNode}>Add QUESTION</button></div>
         <div className="field"><button className="secondary" onClick={addResultNode}>Add RESULT</button></div>
-        <div className="field"><button className="secondary" onClick={addServiceSelectionNode}>Add SERVICE_SELECTION</button></div>
-        <div className="field"><button className="secondary" onClick={addApiCaptureNode}>Add API_CAPTURE</button></div>
-        <div className="field"><button className="secondary" onClick={addGroovyCaptureNode}>Add GROOVY_CAPTURE</button></div>
-        <div className="field"><button className="secondary" onClick={buildBiometryToCrmChain}>Insert biometry->CRM chain template</button></div>
+        <div className="field"><button className="secondary" onClick={addServiceSelectionNode} disabled={!phaseCapabilities.serviceSelection}>Add SERVICE_SELECTION</button></div>
+        <div className="field"><button className="secondary" onClick={addApiCaptureNode} disabled={!phaseCapabilities.apiCapture}>Add API_CAPTURE</button></div>
+        <div className="field"><button className="secondary" onClick={addGroovyCaptureNode} disabled={!phaseCapabilities.groovyCapture}>Add GROOVY_CAPTURE</button></div>
+        <div className="field"><button className="secondary" onClick={buildBiometryToCrmChain} disabled={!phaseCapabilities.biometryChain}>Insert biometry->CRM chain template</button></div>
         <h4>Capture preview (API/Groovy)</h4>
         <div className="field"><label>Preview input</label><textarea rows="2" value={capturePreviewInput} onChange={(e)=>setCapturePreviewInput(e.target.value)} placeholder='string or JSON string' /></div>
         <div className="field"><label>Preview metadata (JSON object)</label><textarea rows="4" value={capturePreviewMetadata} onChange={(e)=>setCapturePreviewMetadata(e.target.value)} placeholder='{"fromEditor":true,"capture.nextInput":"seed"}' /></div>
         <div className="field"><button className="secondary" onClick={previewCaptureNode}>Run capture preview</button></div>
         <div className="field"><label>Preview output</label><textarea rows="6" value={capturePreviewOutput} onChange={(e)=>setCapturePreviewOutput(e.target.value)} /></div>
         <div className="field"><button className="secondary" onClick={applyAutoLayout}>Auto-layout (dagre)</button></div>
+        <div className="field"><button className="secondary" onClick={() => {
+          const issues = validateFlow();
+          setValidationIssues(issues);
+          setStatus(issues.length ? `Validation found ${issues.length} issue(s)` : 'Validation passed');
+        }}>Validate graph</button></div>
+        {validationIssues.length > 0 && (
+          <div className="field">
+            <label>Validation issues</label>
+            <ul style={{margin:'0', paddingLeft:'18px', color:'#9a1b1b'}}>
+              {validationIssues.map((issue, idx) => <li key={`issue-${idx}`}>{issue}</li>)}
+            </ul>
+          </div>
+        )}
         <div className="field"><button className="secondary" onClick={addNextQuestionFromSelected}>Quick: add next QUESTION</button></div>
         <div className="field"><button className="secondary" onClick={addFinalResultFromSelected}>Quick: add final RESULT</button></div>
+        <div className="field"><button className="secondary" onClick={addServiceSelectionFromSelected} disabled={!phaseCapabilities.serviceSelection}>Quick: add SERVICE_SELECTION</button></div>
         <div className="field"><button className="secondary" onClick={duplicateSelectedNode}>Quick: duplicate selected node</button></div>
         <div className="field"><button className="secondary" onClick={deleteSelectedNode}>Delete selected node</button></div>
         <div className="field"><button className="secondary" onClick={deleteSelectedEdge}>Delete selected edge</button></div>
@@ -582,6 +1105,34 @@ function App(){
             <div className="field"><button className="secondary" onClick={applyNodeCode}>Apply node code</button></div>
           </>
         )}
+        {(selectedNode && selectedNode.type === 'serviceSelection') && (
+          <>
+            <div className="field"><label>Service refs (comma-separated)</label>
+              <input value={selectedServiceRefs} onChange={(e)=>setSelectedServiceRefs(e.target.value)} placeholder="svc-a,svc-b" />
+            </div>
+            <div className="field"><button className="secondary" onClick={() => {
+              const refs = selectedServiceRefs.split(',').map(v => v.trim()).filter(Boolean);
+              setNodes(prev => prev.map(node => node.id === selectedNodeId ? { ...node, data: { ...node.data, serviceRefs: refs } } : node));
+              setStatus(`Service refs updated for ${selectedNodeId}`);
+            }}>Apply service refs</button></div>
+          </>
+        )}
+        {(selectedNode && selectedNode.type === 'apiCapture') && (
+          <>
+            <div className="field"><label>API method</label>
+              <select value={apiMethod} onChange={(e)=>setApiMethod(e.target.value)}>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+            </div>
+            <div className="field"><label>API URL</label><input value={apiUrl} onChange={(e)=>setApiUrl(e.target.value)} placeholder="https://service/api/path" /></div>
+            <div className="field"><label>Payload field</label><input value={apiPayloadField} onChange={(e)=>setApiPayloadField(e.target.value)} placeholder="answerValue" /></div>
+            <div className="field"><label>Next input field</label><input value={apiNextInputField} onChange={(e)=>setApiNextInputField(e.target.value)} placeholder="nextInput" /></div>
+            <div className="field"><button className="secondary" onClick={applyApiCaptureConfig}>Apply API config as capture code</button></div>
+          </>
+        )}
         {(selectedNode && selectedNode.type === 'groovyCapture') && (
           <div className="field">
             <label>Groovy editor (syntax highlight)</label>
@@ -601,15 +1152,17 @@ function App(){
         </div>
         <div className="field"><button className="secondary" onClick={applyEdgeTarget}>Apply edge target</button></div>
         <div className="field"><label>Flow JSON (ScenarioGraph)</label><textarea rows="8" value={flowJson} onChange={(e)=>setFlowJson(e.target.value)} /></div>
+        <div className="field"><label>Diff preview</label><textarea rows="8" value={diffPreviewOutput} onChange={(e)=>setDiffPreviewOutput(e.target.value)} /></div>
         <p className="hint">Selected node: {selectedNode ? selectedNode.id : 'none'} / edge: {selectedEdge ? selectedEdge.id : 'none'}</p>
         <p className="hint">{status}</p>
       </section>
       <section className="panel" style={{padding:0}}>
         <div style={{width:'100%', height:'100%'}}>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={displayNodes}
+            edges={displayEdges}
             nodeTypes={nodeTypes}
+            edgeTypes={answerEdgeType}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}

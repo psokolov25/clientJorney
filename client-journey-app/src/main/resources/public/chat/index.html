@@ -5,40 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Client Journey Chat</title>
   <style>
-    body { font-family: Inter, Arial, sans-serif; background: #f5f7fb; margin: 0; color: #1d2636; }
-    .app { max-width: 760px; margin: 24px auto; background: #fff; border: 1px solid #e2e6ef; border-radius: 12px; overflow: hidden; }
-    header { padding: 14px 16px; border-bottom: 1px solid #e2e6ef; display:flex; justify-content:space-between; align-items:center; }
+    :root {
+      --cj-bg: #f5f7fb;
+      --cj-surface: #ffffff;
+      --cj-border: #e2e6ef;
+      --cj-text: #1d2636;
+      --cj-accent: #165dff;
+      --cj-bot-bubble: #e9f1ff;
+      --cj-user-bubble: #daf4e4;
+      --cj-radius: 12px;
+    }
+    body { font-family: Inter, Arial, sans-serif; background: var(--cj-bg); margin: 0; color: var(--cj-text); }
+    .app { max-width: 760px; margin: 24px auto; background: var(--cj-surface); border: 1px solid var(--cj-border); border-radius: var(--cj-radius); overflow: hidden; }
+    body.standalone-fullscreen .app { max-width: none; margin: 0; height: 100vh; border-radius: 0; border-left: 0; border-right: 0; }
+    body.standalone-fullscreen #messages { height: calc(100vh - 176px); }
+    header { padding: 14px 16px; border-bottom: 1px solid var(--cj-border); display:flex; justify-content:space-between; align-items:center; gap: 12px; }
     #messages { height: 420px; overflow: auto; padding: 14px; background: #f9fbff; }
     .msg { margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; max-width: 75%; }
-    .bot { background: #e9f1ff; }
-    .me { margin-left: auto; background: #daf4e4; }
-    .controls { padding: 12px 14px; border-top: 1px solid #e2e6ef; }
+    .bot { background: var(--cj-bot-bubble); }
+    .me { margin-left: auto; background: var(--cj-user-bubble); }
+    .controls { padding: 12px 14px; border-top: 1px solid var(--cj-border); }
     .grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; margin-bottom:8px; }
     input, select, button { border:1px solid #c8d2e3; border-radius:8px; padding:8px; font-size:14px; }
-    button { background:#165dff; color:white; border:0; cursor:pointer; }
+    input:focus-visible, select:focus-visible, button:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--cj-accent) 70%, white 30%);
+      outline-offset: 1px;
+    }
+    button { background:var(--cj-accent); color:white; border:0; cursor:pointer; }
     .row { display:grid; grid-template-columns: 1fr auto; gap:8px; }
+    .brand { display:flex; align-items:center; gap:10px; min-width: 0; }
+    .brand img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; display:none; }
+    .brand .meta { min-width: 0; }
+    .brand .meta h2 { margin:0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand .meta .version { opacity: .65; font-size: 11px; margin-left: 6px; }
+    .widget-launcher {
+      position: fixed; right: 20px; bottom: 20px; width: 56px; height: 56px;
+      border-radius: 50%; border: 0; box-shadow: 0 8px 24px rgba(0,0,0,.18); z-index: 9999;
+      display: none;
+    }
+    .widget-shell { position: fixed; right: 20px; bottom: 88px; width: 360px; max-width: calc(100vw - 20px); z-index: 9999; display:none; }
+    .widget-shell .app { margin: 0; max-width: none; box-shadow: 0 10px 32px rgba(0,0,0,.2); }
   </style>
 </head>
 <body>
-<div class="app">
+<button id="widgetLauncher" class="widget-launcher" aria-label="Open chat">💬</button>
+<div id="widgetShell" class="widget-shell"></div>
+<div id="chatRoot" class="app">
   <header>
-    <div>
-      <h2 id="welcome" style="margin:0"></h2>
-      <small id="hint"></small>
+    <div class="brand">
+      <img id="brandLogo" alt="brand logo" />
+      <div class="meta">
+        <h2 id="welcome"></h2>
+        <span id="chatVersion" class="version"></span>
+        <small id="hint"></small>
+      </div>
     </div>
     <select id="locale"><option value="en">English</option><option value="ru">Русский</option></select>
   </header>
   <div class="controls">
     <div class="grid">
-      <input id="scenarioCode" placeholder="scenario code" value="medical-registration">
-      <input id="branchId" placeholder="branch id" value="north">
+      <input id="scenarioCode" aria-label="Scenario code" placeholder="scenario code" value="medical-registration">
+      <input id="branchId" aria-label="Branch id" placeholder="branch id" value="north">
       <button id="startBtn">Start</button>
     </div>
   </div>
   <div id="messages"></div>
   <div class="controls">
     <div class="row">
-      <input id="answerCode" placeholder="answer code">
+      <input id="answerCode" aria-label="Answer code" placeholder="answer code">
       <button id="sendBtn">Send</button>
     </div>
   </div>
@@ -46,24 +80,201 @@
 
 <script>
   const messages = document.getElementById('messages');
+  const CHAT_UI_VERSION = 'chat-ui-v1';
+  const chatRoot = document.getElementById('chatRoot');
+  const widgetShell = document.getElementById('widgetShell');
+  const widgetLauncher = document.getElementById('widgetLauncher');
   let sessionId = null;
   const mCache = {};
   let branchMode = "BEFORE";
+  const query = new URLSearchParams(window.location.search);
+  const embedScript = document.getElementById('cj-chat-embed');
+  const embedDataConfig = embedScript ? {
+    mode: embedScript.dataset.mode,
+    title: embedScript.dataset.title,
+    logoUrl: embedScript.dataset.logoUrl,
+    launcherIcon: embedScript.dataset.launcherIcon,
+    themeBg: embedScript.dataset.themeBg,
+    themeSurface: embedScript.dataset.themeSurface,
+    themeBorder: embedScript.dataset.themeBorder,
+    themeText: embedScript.dataset.themeText,
+    themeAccent: embedScript.dataset.themeAccent,
+    themeBotBubble: embedScript.dataset.themeBotBubble,
+    themeUserBubble: embedScript.dataset.themeUserBubble,
+    themeRadius: embedScript.dataset.themeRadius
+  } : {};
+  const globalConfig = (window.CJ_CHAT_CONFIG && typeof window.CJ_CHAT_CONFIG === 'object') ? window.CJ_CHAT_CONFIG : {};
+  const LOCALE_STORAGE_KEY = 'cj-chat-locale';
+  const resolveConfig = (key) => {
+    const queryValue = query.get(key);
+    if (queryValue !== null && queryValue !== '') return queryValue;
+    const dataValue = embedDataConfig[key];
+    if (dataValue !== undefined && dataValue !== '') return dataValue;
+    const globalValue = globalConfig[key];
+    if (globalValue !== undefined && globalValue !== null && String(globalValue) !== '') return String(globalValue);
+    return '';
+  };
+
+  function applyThemeFromQuery() {
+    const root = document.documentElement;
+    const preset = (resolveConfig('themePreset') || '').toLowerCase();
+    if (preset === 'dark') {
+      root.style.setProperty('--cj-bg', '#0f172a');
+      root.style.setProperty('--cj-surface', '#111827');
+      root.style.setProperty('--cj-border', '#374151');
+      root.style.setProperty('--cj-text', '#f3f4f6');
+      root.style.setProperty('--cj-accent', '#60a5fa');
+      root.style.setProperty('--cj-bot-bubble', '#1e3a8a');
+      root.style.setProperty('--cj-user-bubble', '#14532d');
+    } else if (preset === 'high-contrast') {
+      root.style.setProperty('--cj-bg', '#000000');
+      root.style.setProperty('--cj-surface', '#000000');
+      root.style.setProperty('--cj-border', '#ffffff');
+      root.style.setProperty('--cj-text', '#ffffff');
+      root.style.setProperty('--cj-accent', '#ffeb3b');
+      root.style.setProperty('--cj-bot-bubble', '#111111');
+      root.style.setProperty('--cj-user-bubble', '#1a1a1a');
+    }
+
+    const mappings = [
+      ['themeBg', '--cj-bg'],
+      ['themeSurface', '--cj-surface'],
+      ['themeBorder', '--cj-border'],
+      ['themeText', '--cj-text'],
+      ['themeAccent', '--cj-accent'],
+      ['themeBotBubble', '--cj-bot-bubble'],
+      ['themeUserBubble', '--cj-user-bubble']
+    ];
+    mappings.forEach(([param, cssVar]) => {
+      const value = resolveConfig(param);
+      if (value) root.style.setProperty(cssVar, value);
+    });
+    const radius = Number(resolveConfig('themeRadius') || '');
+    if (Number.isFinite(radius) && radius >= 4 && radius <= 24) root.style.setProperty('--cj-radius', `${radius}px`);
+
+    const logo = resolveConfig('logoUrl');
+    const logoEl = document.getElementById('brandLogo');
+    if (logo) {
+      logoEl.src = logo;
+      logoEl.style.display = 'block';
+    }
+    const customTitle = resolveConfig('title');
+    if (customTitle) document.title = customTitle;
+    const externalConfigVersion = resolveConfig('configVersion');
+    document.body.dataset.chatUiVersion = CHAT_UI_VERSION;
+    document.getElementById('chatVersion').textContent = externalConfigVersion
+      ? `${CHAT_UI_VERSION} • cfg:${externalConfigVersion}`
+      : CHAT_UI_VERSION;
+
+    const whiteLabel = (resolveConfig('whiteLabel') || '').toLowerCase() === 'true';
+    if (whiteLabel) {
+      document.getElementById('hint').style.display = 'none';
+      document.getElementById('locale').style.display = 'none';
+    }
+  }
+
+  function enableWidgetModeIfNeeded() {
+    const mode = (resolveConfig('mode') || '').toLowerCase();
+    if (mode === 'standalone-fullscreen') {
+      document.body.classList.add('standalone-fullscreen');
+      return;
+    }
+    if (mode !== 'widget') return;
+    widgetShell.appendChild(chatRoot);
+    widgetLauncher.style.display = 'block';
+    const icon = resolveConfig('launcherIcon');
+    if (icon) widgetLauncher.textContent = icon;
+    widgetLauncher.addEventListener('click', () => {
+      const opened = widgetShell.style.display === 'block';
+      widgetShell.style.display = opened ? 'none' : 'block';
+      widgetLauncher.setAttribute('aria-label', opened ? 'Open chat' : 'Close chat');
+      if (!opened) {
+        setTimeout(() => document.getElementById('answerCode').focus(), 0);
+      }
+    });
+    document.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Escape' && widgetShell.style.display === 'block') {
+        widgetShell.style.display = 'none';
+        widgetLauncher.setAttribute('aria-label', 'Open chat');
+        widgetLauncher.focus();
+      }
+    });
+  }
 
   function addMessage(text, cls='bot') {
     const el = document.createElement('div');
     el.className = `msg ${cls}`;
-    el.textContent = text;
+    if (cls === 'bot') {
+      renderSafeBotMessage(el, String(text || ''));
+    } else {
+      el.textContent = text;
+    }
     messages.appendChild(el);
     messages.scrollTop = messages.scrollHeight;
   }
 
+  function renderSafeBotMessage(container, rawText) {
+    const appendText = (target, value) => {
+      if (!value) return;
+      target.appendChild(document.createTextNode(value));
+    };
+    const lineParts = String(rawText || '').split(/\n/);
+    lineParts.forEach((line, lineIdx) => {
+      if (lineIdx > 0) container.appendChild(document.createElement('br'));
+      // very small safe markdown subset: **bold**, *italic*, [text](https://...)
+      const tokens = [];
+      let cursor = 0;
+      const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+]\((https?:\/\/[^)\s]+)\))/g;
+      let match;
+      while ((match = regex.exec(line)) !== null) {
+        if (match.index > cursor) tokens.push({ type: 'text', value: line.slice(cursor, match.index) });
+        const value = match[0];
+        if (value.startsWith('**') && value.endsWith('**')) {
+          tokens.push({ type: 'bold', value: value.slice(2, -2) });
+        } else if (value.startsWith('*') && value.endsWith('*')) {
+          tokens.push({ type: 'italic', value: value.slice(1, -1) });
+        } else {
+          const textMatch = value.match(/^\[([^\]]+)]\((https?:\/\/[^)\s]+)\)$/);
+          if (textMatch) tokens.push({ type: 'link', label: textMatch[1], href: textMatch[2] });
+          else tokens.push({ type: 'text', value });
+        }
+        cursor = regex.lastIndex;
+      }
+      if (cursor < line.length) tokens.push({ type: 'text', value: line.slice(cursor) });
+
+      tokens.forEach((token) => {
+        if (token.type === 'bold') {
+          const strong = document.createElement('strong');
+          appendText(strong, token.value);
+          container.appendChild(strong);
+        } else if (token.type === 'italic') {
+          const em = document.createElement('em');
+          appendText(em, token.value);
+          container.appendChild(em);
+        } else if (token.type === 'link') {
+          const link = document.createElement('a');
+          link.href = token.href;
+          link.rel = 'noopener noreferrer';
+          link.target = '_blank';
+          appendText(link, token.label);
+          container.appendChild(link);
+        } else {
+          appendText(container, token.value);
+        }
+      });
+    });
+  }
+
   async function loadLocale(locale){
     const m = await fetch(`/chat/i18n/${locale}.json`).then(r=>r.json());
-    document.getElementById('welcome').textContent = m.welcome;
-    document.getElementById('hint').textContent = m.hint;
-    document.getElementById('startBtn').textContent = m.start;
-    document.getElementById('sendBtn').textContent = m.send;
+    const brandedTitle = resolveConfig('title');
+    const brandedHint = resolveConfig('hint');
+    const startCta = resolveConfig('startCta');
+    const sendCta = resolveConfig('sendCta');
+    document.getElementById('welcome').textContent = brandedTitle || m.welcome;
+    document.getElementById('hint').textContent = brandedHint || m.hint;
+    document.getElementById('startBtn').textContent = startCta || m.start;
+    document.getElementById('sendBtn').textContent = sendCta || m.send;
     Object.assign(mCache, m);
     document.getElementById('branchId').placeholder = m.branchPlaceholder;
     document.getElementById('answerCode').placeholder = m.answerPlaceholder;
@@ -123,10 +334,26 @@
     }
     if (data.questionText) addMessage(data.questionText);
   });
+  document.getElementById('answerCode').addEventListener('keydown', (evt) => {
+    if (evt.key === 'Enter') {
+      evt.preventDefault();
+      document.getElementById('sendBtn').click();
+    }
+  });
 
   document.getElementById('scenarioCode').addEventListener('change', loadBranchConfig);
-  document.getElementById('locale').addEventListener('change', e => loadLocale(e.target.value));
-  loadLocale('en');
+  document.getElementById('locale').addEventListener('change', e => {
+    const nextLocale = e.target.value;
+    localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+    loadLocale(nextLocale);
+  });
+  applyThemeFromQuery();
+  enableWidgetModeIfNeeded();
+  const configuredLocale = (resolveConfig('locale') || '').toLowerCase();
+  const savedLocale = (localStorage.getItem(LOCALE_STORAGE_KEY) || '').toLowerCase();
+  const initialLocale = ['ru', 'en'].includes(configuredLocale) ? configuredLocale : (['ru', 'en'].includes(savedLocale) ? savedLocale : 'en');
+  document.getElementById('locale').value = initialLocale;
+  loadLocale(initialLocale);
   loadBranchConfig();
 </script>
 </body>
