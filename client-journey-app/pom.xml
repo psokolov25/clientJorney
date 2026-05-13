@@ -7,7 +7,9 @@
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-runtime</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-jackson-databind</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-websocket</artifactId><version>${micronaut.version}</version></dependency>
+    <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-http-client</artifactId><version>${micronaut.version}</version></dependency>
     <dependency><groupId>ch.qos.logback</groupId><artifactId>logback-classic</artifactId><version>1.5.6</version></dependency>
+    <dependency><groupId>org.apache.groovy</groupId><artifactId>groovy</artifactId><version>4.0.21</version></dependency>
     <dependency><groupId>io.micronaut.openapi</groupId><artifactId>micronaut-openapi-annotations</artifactId><version>6.13.2</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-core</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.clientjourney</groupId><artifactId>client-journey-storage-spi</artifactId><version>${project.version}</version></dependency>
@@ -20,7 +22,6 @@
     <dependency><groupId>io.micronaut.test</groupId><artifactId>micronaut-test-junit5</artifactId><version>4.3.0</version><scope>test</scope></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.2</version><scope>test</scope></dependency>
     <dependency><groupId>org.mockito</groupId><artifactId>mockito-core</artifactId><version>5.12.0</version><scope>test</scope></dependency>
-    <dependency><groupId>io.micronaut</groupId><artifactId>micronaut-http-client</artifactId><version>${micronaut.version}</version><scope>test</scope></dependency>
     <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.3.0</version><scope>test</scope></dependency>
   </dependencies>
   <build>

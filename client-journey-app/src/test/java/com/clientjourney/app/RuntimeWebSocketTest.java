@@ -6,6 +6,7 @@ import com.clientjourney.app.service.RuntimeAnswerService;
 import com.clientjourney.app.service.RuntimeCompletionService;
 import com.clientjourney.app.service.RuntimeSessionService;
 import com.clientjourney.app.service.ServiceSelectionProcessor;
+import com.clientjourney.app.service.VisitCreationSettingsService;
 import com.clientjourney.visit.mock.DryRunVisitCreationClient;
 import com.clientjourney.core.ScenarioEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,7 @@ class RuntimeWebSocketTest {
         RuntimeWebSocket socket = new RuntimeWebSocket(
             new RuntimeSessionService(new ScenarioEngine(), sessionService),
             new RuntimeAnswerService(sessionService),
-            new RuntimeCompletionService(new ServiceSelectionProcessor(sessionService), sessionService, new DryRunVisitCreationClient()),
+            new RuntimeCompletionService(new ServiceSelectionProcessor(sessionService), sessionService, new DryRunVisitCreationClient(), new VisitCreationSettingsService()),
             new ObjectMapper()
         );
 
@@ -53,7 +54,7 @@ class RuntimeWebSocketTest {
         RuntimeWebSocket socket = new RuntimeWebSocket(
             new RuntimeSessionService(new ScenarioEngine(), sessionService),
             new RuntimeAnswerService(sessionService),
-            new RuntimeCompletionService(new ServiceSelectionProcessor(sessionService), sessionService, new DryRunVisitCreationClient()),
+            new RuntimeCompletionService(new ServiceSelectionProcessor(sessionService), sessionService, new DryRunVisitCreationClient(), new VisitCreationSettingsService()),
             new ObjectMapper()
         );
 

@@ -3,6 +3,8 @@ package com.clientjourney.app.admin;
 import com.clientjourney.app.repository.InMemoryScenarioGraphRepository;
 import com.clientjourney.app.repository.InMemoryScenarioRepository;
 import com.clientjourney.app.service.RouteValidationService;
+import com.clientjourney.app.service.CaptureNodeProcessingService;
+import com.clientjourney.app.service.CapturePreviewService;
 import com.clientjourney.app.service.ScenarioGraphService;
 import com.clientjourney.app.service.ScenarioService;
 import com.clientjourney.domain.model.*;
@@ -21,7 +23,7 @@ class AdminScenarioGraphControllerTest {
             scenarioService,
             new InMemoryScenarioGraphRepository(),
             new RouteValidationService()
-        ));
+        ), new CapturePreviewService(new CaptureNodeProcessingService(null)));
         var scenario = new AdminScenarioController(scenarioService)
             .create(new com.clientjourney.app.admin.dto.CreateScenarioRequest("code", "name", "desc"));
 

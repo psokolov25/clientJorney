@@ -18,6 +18,9 @@
     #app { height:100%; }
     .react-flow__node-question { border:2px solid #4a71d1; background:#edf2ff; border-radius:10px; padding:8px; width:220px; }
     .react-flow__node-result { border:2px solid #50a56f; background:#e7f8ef; border-radius:10px; padding:8px; width:220px; }
+    .react-flow__node-serviceSelection { border:2px solid #b8792f; background:#fff2e3; border-radius:10px; padding:8px; width:240px; }
+    .react-flow__node-apiCapture { border:2px solid #2176ae; background:#e8f5ff; border-radius:10px; padding:8px; width:260px; }
+    .react-flow__node-groovyCapture { border:2px solid #7a4dc2; background:#f1e9ff; border-radius:10px; padding:8px; width:260px; }
     .hint {font-size:12px;color:#667791;}
   </style>
 </head>
@@ -32,9 +35,13 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://unpkg.com/reactflow@11.11.4/dist/umd/index.js"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/groovy/groovy.min.js"></script>
 <script type="text/babel">
-const {useMemo, useState, useCallback} = React;
-const {ReactFlow, Background, Controls, MiniMap, addEdge, applyNodeChanges, applyEdgeChanges} = window.ReactFlow;
+const {useMemo, useState, useCallback, useRef} = React;
+const {ReactFlow, Background, Controls, MiniMap, addEdge, applyNodeChanges, applyEdgeChanges, Handle, Position} = window.ReactFlow;
 
 function App(){
   const [nodes, setNodes] = useState([
@@ -47,14 +54,26 @@ function App(){
     { id:'e2', source:'q-service', target:'result', label:'doctor:Doctor consult' }
   ]);
   const [selectedNodeId, setSelectedNodeId] = useState('start');
+  const [selectedEdgeId, setSelectedEdgeId] = useState('');
   const [answerCode, setAnswerCode] = useState('');
   const [answerLabel, setAnswerLabel] = useState('');
   const [targetId, setTargetId] = useState('result');
   const [flowJson, setFlowJson] = useState('');
   const [status, setStatus] = useState('Ready');
   const [scenarioId, setScenarioId] = useState('');
+  const [selectedNodeText, setSelectedNodeText] = useState('How can we help?');
+  const [selectedEdgeCode, setSelectedEdgeCode] = useState('');
+  const [selectedEdgeLabel, setSelectedEdgeLabel] = useState('');
+  const [selectedEdgeTargetId, setSelectedEdgeTargetId] = useState('');
+  const [capturePreviewInput, setCapturePreviewInput] = useState('');
+  const [capturePreviewOutput, setCapturePreviewOutput] = useState('');
+  const [capturePreviewMetadata, setCapturePreviewMetadata] = useState('{"fromEditor":true,"capture.nextInput":null}');
+  const [selectedNodeCode, setSelectedNodeCode] = useState('');
+  const groovyEditorHostRef = useRef(null);
+  const groovyEditorRef = useRef(null);
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
+  const selectedEdge = edges.find(e => e.id === selectedEdgeId);
 
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
@@ -70,6 +89,58 @@ function App(){
     setNodes(prev => [...prev, { id, type:'result', data:{label:id, text:'Result'}, position:{x:760, y:300 + prev.length*20} }]);
   };
 
+  const addServiceSelectionNode = () => {
+    const id = `svc-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, {
+      id,
+      type:'serviceSelection',
+      data:{label:id, text:'Select one or more services', selectionMode:'USER_SELECTABLE_SERVICES'},
+      position:{x:560, y:300 + prev.length*20}
+    }]);
+  };
+  const addApiCaptureNode = () => {
+    const id = `api-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, {
+      id,
+      type:'apiCapture',
+      data:{label:id, text:'Collect input and call REST API', configHint:'code=url OR JSON {url,method,payloadField,nextInputField}'},
+      position:{x:580, y:260 + prev.length*18}
+    }]);
+  };
+  const addGroovyCaptureNode = () => {
+    const id = `groovy-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, {
+      id,
+      type:'groovyCapture',
+      data:{label:id, text:'Collect input and process via Groovy', configHint:'Groovy may return Map with __nextInput', captureCode:'return [__nextInput: answerValue]'},
+      position:{x:620, y:280 + prev.length*18}
+    }]);
+  };
+
+  const buildBiometryToCrmChain = () => {
+    const baseY = 420;
+    const chainNodes = [
+      { id: 'q-gender', type: 'question', data: { label: 'q-gender', text: 'Укажите пол' }, position: { x: 120, y: baseY } },
+      { id: 'q-age', type: 'question', data: { label: 'q-age', text: 'Укажите возраст' }, position: { x: 420, y: baseY } },
+      { id: 'api-photo-biometry', type: 'apiCapture', data: { label: 'api-photo-biometry', text: 'Загрузите фото, вызываем биометрию', configHint: 'code={\"url\":\"https://biometry/api/recognize\",\"nextInputField\":\"biometry\"}' }, position: { x: 720, y: baseY } },
+      { id: 'groovy-extract-client-id', type: 'groovyCapture', data: { label: 'groovy-extract-client-id', text: 'Groovy: извлечь clientIdentifier из biometry', configHint: 'code=script with nextInput' }, position: { x: 1060, y: baseY } },
+      { id: 'api-crm-by-client-id', type: 'apiCapture', data: { label: 'api-crm-by-client-id', text: 'REST CRM lookup by clientIdentifier', configHint: 'code=https://crm/api/client' }, position: { x: 1420, y: baseY } },
+      { id: 'groovy-fio-segment', type: 'groovyCapture', data: { label: 'groovy-fio-segment', text: 'Groovy: extract FIO + segment -> nextInput', configHint: 'returns {fullName, segment, nextInput}' }, position: { x: 1760, y: baseY } },
+      { id: 'result-visit', type: 'result', data: { label: 'result-visit', text: 'Создаем визит с параметрами профиля' }, position: { x: 2100, y: baseY } }
+    ];
+    const chainEdges = [
+      { id: 'e-q-gender-q-age', source: 'q-gender', target: 'q-age', label: 'next:Далее' },
+      { id: 'e-q-age-photo', source: 'q-age', target: 'api-photo-biometry', label: 'next:Фото' },
+      { id: 'e-photo-groovy-id', source: 'api-photo-biometry', target: 'groovy-extract-client-id', label: 'next:extractId' },
+      { id: 'e-groovy-id-crm', source: 'groovy-extract-client-id', target: 'api-crm-by-client-id', label: 'next:toCRM' },
+      { id: 'e-crm-groovy-profile', source: 'api-crm-by-client-id', target: 'groovy-fio-segment', label: 'next:profile' },
+      { id: 'e-profile-result', source: 'groovy-fio-segment', target: 'result-visit', label: 'next:visit' }
+    ];
+    setNodes(prev => [...prev.filter(n => !chainNodes.some(c => c.id === n.id)), ...chainNodes]);
+    setEdges(prev => [...prev.filter(e => !chainEdges.some(c => c.id === e.id)), ...chainEdges]);
+    setStatus('Template chain added: gender -> age -> photo biometry -> groovy id -> crm -> groovy profile -> visit');
+  };
+
   const addAnswerPath = () => {
     if(!selectedNodeId || !targetId || !answerCode.trim()) return;
     const edgeId = `e-${selectedNodeId}-${targetId}-${answerCode.trim()}`;
@@ -78,12 +149,141 @@ function App(){
     setAnswerCode(''); setAnswerLabel('');
   };
 
+  const applyNodeText = () => {
+    if (!selectedNodeId) return;
+    setNodes(prev => prev.map(node => node.id === selectedNodeId
+      ? { ...node, data: { ...node.data, text: selectedNodeText } }
+      : node));
+    setStatus(`Node ${selectedNodeId} updated`);
+  };
+  const applyNodeCode = () => {
+    if (!selectedNodeId) return;
+    if (!selectedNode || !isCaptureType(selectedNode.type)) return setStatus('Node code applies only to API/Groovy capture nodes');
+    setNodes(prev => prev.map(node => node.id === selectedNodeId
+      ? { ...node, data: { ...node.data, captureCode: selectedNodeCode } }
+      : node));
+    setStatus(`Node code updated for ${selectedNodeId}`);
+  };
+
+  const applyEdgeLabel = () => {
+    if (!selectedEdgeId || !selectedEdgeCode.trim()) return;
+    const nextLabel = `${selectedEdgeCode.trim()}:${(selectedEdgeLabel || selectedEdgeCode).trim()}`;
+    setEdges(prev => prev.map(edge => edge.id === selectedEdgeId ? { ...edge, label: nextLabel } : edge));
+    setStatus(`Edge ${selectedEdgeId} updated`);
+  };
+
+  const applyEdgeTarget = () => {
+    if (!selectedEdgeId || !selectedEdgeTargetId) return;
+    setEdges(prev => prev.map(edge => edge.id === selectedEdgeId ? { ...edge, target: selectedEdgeTargetId } : edge));
+    setStatus(`Edge ${selectedEdgeId} re-targeted to ${selectedEdgeTargetId}`);
+  };
+
+
+  const deleteSelectedNode = () => {
+    if (!selectedNodeId) return setStatus('Select node to delete');
+    const exists = nodes.some(n => n.id === selectedNodeId);
+    if (!exists) return setStatus(`Node ${selectedNodeId} not found`);
+    const nextNodes = nodes.filter(n => n.id !== selectedNodeId);
+    const removedEdges = edges.filter(e => e.source === selectedNodeId || e.target === selectedNodeId).length;
+    const nextEdges = edges.filter(e => e.source !== selectedNodeId && e.target !== selectedNodeId);
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    setSelectedNodeId(nextNodes[0]?.id || '');
+    setSelectedEdgeId('');
+    setStatus(`Deleted node ${selectedNodeId} and ${removedEdges} connected edge(s)`);
+  };
+
+  const deleteSelectedEdge = () => {
+    if (!selectedEdgeId) return setStatus('Select edge to delete');
+    const exists = edges.some(e => e.id === selectedEdgeId);
+    if (!exists) return setStatus(`Edge ${selectedEdgeId} not found`);
+    setEdges(prev => prev.filter(e => e.id !== selectedEdgeId));
+    setSelectedEdgeId('');
+    setStatus(`Deleted edge ${selectedEdgeId}`);
+  };
+
+  const duplicateSelectedNode = () => {
+    if (!selectedNodeId) return setStatus('Select node to duplicate');
+    const base = nodes.find(n => n.id === selectedNodeId);
+    if (!base) return setStatus(`Node ${selectedNodeId} not found`);
+    const id = `${base.id}-copy-${Math.random().toString(36).slice(2,5)}`;
+    const clone = {
+      ...base,
+      id,
+      data: { ...base.data, label: id },
+      position: { x: (base.position?.x || 120) + 60, y: (base.position?.y || 120) + 40 }
+    };
+    setNodes(prev => [...prev, clone]);
+    setSelectedNodeId(id);
+    setStatus(`Duplicated node ${base.id} -> ${id}`);
+  };
+
+  const addNextQuestionFromSelected = () => {
+    if (!selectedNodeId) return setStatus('Select source node first');
+    const newId = `q-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, { id:newId, type:'question', data:{label:newId, text:'Follow-up question'}, position:{x:460, y:200 + prev.length * 30} }]);
+    const answer = `next_${Math.random().toString(36).slice(2,4)}`;
+    setEdges(prev => [...prev, { id:`e-${selectedNodeId}-${newId}-${answer}`, source:selectedNodeId, target:newId, label:`${answer}:Next` }]);
+    setStatus(`Added QUESTION ${newId} from ${selectedNodeId}`);
+  };
+
+  const addFinalResultFromSelected = () => {
+    if (!selectedNodeId) return setStatus('Select source node first');
+    const newId = `r-${Math.random().toString(36).slice(2,7)}`;
+    setNodes(prev => [...prev, { id:newId, type:'result', data:{label:newId, text:'Final result'}, position:{x:840, y:220 + prev.length * 25} }]);
+    const answer = `final_${Math.random().toString(36).slice(2,4)}`;
+    setEdges(prev => [...prev, { id:`e-${selectedNodeId}-${newId}-${answer}`, source:selectedNodeId, target:newId, label:`${answer}:Finish` }]);
+    setStatus(`Added RESULT ${newId} from ${selectedNodeId}`);
+  };
+
+  const applyAutoLayout = () => {
+    const g = new dagre.graphlib.Graph();
+    g.setGraph({ rankdir: 'LR', nodesep: 56, ranksep: 120 });
+    g.setDefaultEdgeLabel(() => ({}));
+
+    nodes.forEach((node) => g.setNode(node.id, { width: 240, height: 90 }));
+    edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+    dagre.layout(g);
+
+    setNodes((prev) => prev.map((node) => {
+      const layoutNode = g.node(node.id);
+      if (!layoutNode) return node;
+      return {
+        ...node,
+        position: { x: layoutNode.x - 120, y: layoutNode.y - 45 }
+      };
+    }));
+    setStatus('Auto-layout applied (dagre LR)');
+  };
+
+  const isCaptureType = (nodeType) => nodeType === 'apiCapture' || nodeType === 'groovyCapture';
+
   const validateFlow = (nodesArg = nodes, edgesArg = edges) => {
     const ids = new Set(nodesArg.map(n => n.id));
     for (const e of edgesArg) {
       if (!ids.has(e.source) || !ids.has(e.target)) return `Broken edge ${e.id}`;
     }
     const hasResult = nodesArg.some(n => n.type === 'result');
+
+    const captureWithoutCode = nodesArg
+      .filter(n => isCaptureType(n.type) && !String(n.data?.captureCode || '').trim())
+      .map(n => n.id);
+    if (captureWithoutCode.length) return `Capture nodes without code: ${captureWithoutCode.join(', ')}`;
+
+    const duplicateAnswerCodes = [];
+    nodesArg.forEach((n) => {
+      const sourceCodes = edgesArg
+        .filter(e => e.source === n.id)
+        .map(e => String(e.label || 'next').split(':')[0] || 'next');
+      const seen = new Set();
+      sourceCodes.forEach(code => {
+        const normalized = String(code || '').trim();
+        if (!normalized) return;
+        if (seen.has(normalized)) duplicateAnswerCodes.push(`${n.id}:${normalized}`);
+        seen.add(normalized);
+      });
+    });
+    if (duplicateAnswerCodes.length) return `Duplicate answer codes for node: ${duplicateAnswerCodes.join(', ')}`;
     if (!hasResult) return 'At least one RESULT node is required';
 
     const start = nodesArg.find(n => n.id === 'start') || nodesArg[0];
@@ -123,14 +323,17 @@ function App(){
     version: 1,
     nodes: nodes.map(n => ({
       id: n.id,
-      type: n.type === 'result' ? 'RESULT' : 'QUESTION',
-      code: n.id,
+      type: n.type === 'result' ? 'RESULT'
+        : (n.type === 'serviceSelection' ? 'SERVICE_SELECTION'
+            : (n.type === 'apiCapture' ? 'API_CAPTURE'
+                : (n.type === 'groovyCapture' ? 'GROOVY_CAPTURE' : 'QUESTION'))),
+      code: (n.type === 'apiCapture' || n.type === 'groovyCapture') ? (n.data?.captureCode || '') : n.id,
       text: n.data?.text || n.data?.label || n.id,
       answers: edges.filter(e => e.source === n.id).map(e => {
         const [code, ...labelParts] = String(e.label || 'next').split(':');
         return { id: code || 'next', text: labelParts.join(':') || code || 'next' };
       }),
-      services: []
+      services: n.type === 'serviceSelection' ? ['svc-demo-1', 'svc-demo-2'] : []
     })),
     edges: edges.map(e => ({
       id: e.id,
@@ -144,8 +347,11 @@ function App(){
     if (!payload || !Array.isArray(payload.nodes)) throw new Error('JSON must contain nodes[]');
     const restoredNodes = payload.nodes.map((n, idx) => ({
       id: n.id,
-      type: n.type === 'RESULT' ? 'result' : 'question',
-      data: { label: n.code || n.id, text: n.text || n.id },
+      type: n.type === 'RESULT' ? 'result'
+        : (n.type === 'SERVICE_SELECTION' ? 'serviceSelection'
+            : (n.type === 'API_CAPTURE' ? 'apiCapture'
+                : (n.type === 'GROOVY_CAPTURE' ? 'groovyCapture' : 'question'))),
+      data: { label: n.code || n.id, text: n.text || n.id, captureCode: (n.type === 'API_CAPTURE' || n.type === 'GROOVY_CAPTURE') ? (n.code || '') : '' },
       position: { x: 150 + (idx % 3) * 320, y: 120 + Math.floor(idx / 3) * 180 }
     }));
     const answerMap = new Map();
@@ -213,21 +419,145 @@ function App(){
     } catch (e) { setStatus(`Save failed: ${e.message}`); }
   };
 
+  const previewCaptureNode = async () => {
+    if (!scenarioId) return setStatus('Scenario ID is required');
+    if (!selectedNodeId) return setStatus('Select capture node first');
+    let metadata;
+    try {
+      metadata = capturePreviewMetadata?.trim() ? JSON.parse(capturePreviewMetadata) : {};
+      if (typeof metadata !== 'object' || Array.isArray(metadata) || metadata === null) {
+        return setStatus('Preview metadata must be a JSON object');
+      }
+    } catch (parseErr) {
+      return setStatus(`Preview metadata JSON is invalid: ${parseErr.message}`);
+    }
+    try {
+      const res = await fetch(`/api/admin/scenarios/${encodeURIComponent(scenarioId)}/graph/capture-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nodeId: selectedNodeId,
+          answerValue: capturePreviewInput,
+          metadata
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Capture preview failed');
+      setCapturePreviewOutput(JSON.stringify(data, null, 2));
+      setStatus('Capture preview executed');
+    } catch (e) {
+      setStatus(`Capture preview failed: ${e.message}`);
+    }
+  };
+
   const nodeTypes = useMemo(() => ({
-    question: ({data}) => <div><strong>{data.label}</strong><div>{data.text}</div></div>,
-    result: ({data}) => <div><strong>{data.label}</strong><div>{data.text}</div></div>
-  }), []);
+    question: ({data}) => (
+      <div>
+        <Handle type="target" position={Position.Left} />
+        <strong>{data.label}</strong>
+        <div>{data.text}</div>
+        <div className="hint">Answers: {(edges.filter(e => e.source === data.label).length)}</div>
+        <Handle type="source" position={Position.Right} />
+      </div>
+    ),
+    result: ({data}) => (
+      <div>
+        <Handle type="target" position={Position.Left} />
+        <strong>{data.label}</strong>
+        <div>{data.text}</div>
+        <div className="hint">Final node</div>
+      </div>
+    ),
+    serviceSelection: ({data}) => (
+      <div>
+        <Handle type="target" position={Position.Left} />
+        <strong>{data.label}</strong>
+        <div>{data.text}</div>
+        <div className="hint">SERVICE_SELECTION • {data.selectionMode || 'USER_SELECTABLE_SERVICES'}</div>
+        <Handle type="source" position={Position.Right} />
+      </div>
+    ),
+    apiCapture: ({data}) => (
+      <div>
+        <Handle type="target" position={Position.Left} />
+        <strong>{data.label}</strong>
+        <div>{data.text}</div>
+        <div className="hint">Input -> REST API -> saved to metadata</div>
+        <Handle type="source" position={Position.Right} />
+      </div>
+    ),
+    groovyCapture: ({data}) => (
+      <div>
+        <Handle type="target" position={Position.Left} />
+        <strong>{data.label}</strong>
+        <div>{data.text}</div>
+        <div className="hint">Input -> Groovy script -> saved to metadata</div>
+        <Handle type="source" position={Position.Right} />
+      </div>
+    ),
+  }), [edges]);
+
+  React.useEffect(() => {
+    if (selectedNode) {
+      setSelectedNodeText(selectedNode.data?.text || '');
+      setSelectedNodeCode(selectedNode.data?.captureCode || '');
+    }
+  }, [selectedNodeId]);
+
+  React.useEffect(() => {
+    if (!groovyEditorHostRef.current) return;
+    if (!groovyEditorRef.current) {
+      groovyEditorRef.current = window.CodeMirror(groovyEditorHostRef.current, {
+        value: selectedNodeCode || '',
+        mode: 'text/x-groovy',
+        lineNumbers: true,
+        theme: 'default',
+        indentUnit: 2,
+        tabSize: 2,
+      });
+      groovyEditorRef.current.on('change', (editor) => {
+        setSelectedNodeCode(editor.getValue());
+      });
+    }
+    if (groovyEditorRef.current.getValue() !== (selectedNodeCode || '')) {
+      groovyEditorRef.current.setValue(selectedNodeCode || '');
+    }
+  }, [selectedNodeCode, selectedNodeId]);
+
+  React.useEffect(() => {
+    if (selectedEdge) {
+      const [code, ...rest] = String(selectedEdge.label || '').split(':');
+      setSelectedEdgeCode(code || '');
+      setSelectedEdgeLabel(rest.join(':') || code || '');
+      setSelectedEdgeTargetId(selectedEdge.target || '');
+    }
+  }, [selectedEdgeId]);
 
   return (
     <>
       <section className="panel">
         <h3>Editor controls</h3>
-        <p className="hint">React Flow spike: nodes, answer edges, export.</p>
+        <p className="hint">Phase 0: React Flow editor + side panel + import/export.</p>
         <div className="field"><label>Scenario ID</label><input value={scenarioId} onChange={(e)=>setScenarioId(e.target.value)} placeholder="UUID" /></div>
         <div className="field"><button className="secondary" onClick={loadFromApi}>Load from API</button></div>
         <div className="field"><button className="secondary" onClick={saveToApi}>Save to API</button></div>
         <div className="field"><button onClick={addQuestionNode}>Add QUESTION</button></div>
         <div className="field"><button className="secondary" onClick={addResultNode}>Add RESULT</button></div>
+        <div className="field"><button className="secondary" onClick={addServiceSelectionNode}>Add SERVICE_SELECTION</button></div>
+        <div className="field"><button className="secondary" onClick={addApiCaptureNode}>Add API_CAPTURE</button></div>
+        <div className="field"><button className="secondary" onClick={addGroovyCaptureNode}>Add GROOVY_CAPTURE</button></div>
+        <div className="field"><button className="secondary" onClick={buildBiometryToCrmChain}>Insert biometry->CRM chain template</button></div>
+        <h4>Capture preview (API/Groovy)</h4>
+        <div className="field"><label>Preview input</label><textarea rows="2" value={capturePreviewInput} onChange={(e)=>setCapturePreviewInput(e.target.value)} placeholder='string or JSON string' /></div>
+        <div className="field"><label>Preview metadata (JSON object)</label><textarea rows="4" value={capturePreviewMetadata} onChange={(e)=>setCapturePreviewMetadata(e.target.value)} placeholder='{"fromEditor":true,"capture.nextInput":"seed"}' /></div>
+        <div className="field"><button className="secondary" onClick={previewCaptureNode}>Run capture preview</button></div>
+        <div className="field"><label>Preview output</label><textarea rows="6" value={capturePreviewOutput} onChange={(e)=>setCapturePreviewOutput(e.target.value)} /></div>
+        <div className="field"><button className="secondary" onClick={applyAutoLayout}>Auto-layout (dagre)</button></div>
+        <div className="field"><button className="secondary" onClick={addNextQuestionFromSelected}>Quick: add next QUESTION</button></div>
+        <div className="field"><button className="secondary" onClick={addFinalResultFromSelected}>Quick: add final RESULT</button></div>
+        <div className="field"><button className="secondary" onClick={duplicateSelectedNode}>Quick: duplicate selected node</button></div>
+        <div className="field"><button className="secondary" onClick={deleteSelectedNode}>Delete selected node</button></div>
+        <div className="field"><button className="secondary" onClick={deleteSelectedEdge}>Delete selected edge</button></div>
 
         <div className="field"><label>From node</label>
           <select value={selectedNodeId} onChange={(e)=>setSelectedNodeId(e.target.value)}>{nodes.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}</select>
@@ -240,8 +570,38 @@ function App(){
         <div className="field"><button onClick={addAnswerPath}>Add answer path</button></div>
         <div className="field"><button className="secondary" onClick={exportFlow}>Export + Copy JSON</button></div>
         <div className="field"><button className="secondary" onClick={importFlow}>Import JSON</button></div>
+        <h4>Selected node</h4>
+        <div className="field"><label>Node ID</label><input value={selectedNodeId} onChange={(e)=>setSelectedNodeId(e.target.value)} /></div>
+        <div className="field"><label>Node text</label><textarea rows="3" value={selectedNodeText} onChange={(e)=>setSelectedNodeText(e.target.value)} /></div>
+        <div className="field"><button className="secondary" onClick={applyNodeText}>Apply node text</button></div>
+        {(selectedNode && isCaptureType(selectedNode.type)) && (
+          <>
+            <div className="field"><label>Node code (for API/Groovy capture)</label>
+              <textarea rows="3" value={selectedNodeCode} onChange={(e)=>setSelectedNodeCode(e.target.value)} placeholder="URL, JSON config or script" />
+            </div>
+            <div className="field"><button className="secondary" onClick={applyNodeCode}>Apply node code</button></div>
+          </>
+        )}
+        {(selectedNode && selectedNode.type === 'groovyCapture') && (
+          <div className="field">
+            <label>Groovy editor (syntax highlight)</label>
+            <div ref={groovyEditorHostRef} style={{border:'1px solid #cbd4e4', borderRadius:'8px', minHeight:'200px'}}></div>
+          </div>
+        )}
+        <h4>Selected edge</h4>
+        <div className="field"><label>Edge ID</label><input value={selectedEdgeId} onChange={(e)=>setSelectedEdgeId(e.target.value)} placeholder="Click edge on canvas" /></div>
+        <div className="field"><label>Answer code</label><input value={selectedEdgeCode} onChange={(e)=>setSelectedEdgeCode(e.target.value)} /></div>
+        <div className="field"><label>Answer label</label><input value={selectedEdgeLabel} onChange={(e)=>setSelectedEdgeLabel(e.target.value)} /></div>
+        <div className="field"><button className="secondary" onClick={applyEdgeLabel}>Apply edge label</button></div>
+        <div className="field"><label>Edge target</label>
+          <select value={selectedEdgeTargetId} onChange={(e)=>setSelectedEdgeTargetId(e.target.value)}>
+            <option value="">-- choose target --</option>
+            {nodes.map(n => <option key={`target-${n.id}`} value={n.id}>{n.id}</option>)}
+          </select>
+        </div>
+        <div className="field"><button className="secondary" onClick={applyEdgeTarget}>Apply edge target</button></div>
         <div className="field"><label>Flow JSON (ScenarioGraph)</label><textarea rows="8" value={flowJson} onChange={(e)=>setFlowJson(e.target.value)} /></div>
-        <p className="hint">Selected: {selectedNode ? selectedNode.id : 'none'}</p>
+        <p className="hint">Selected node: {selectedNode ? selectedNode.id : 'none'} / edge: {selectedEdge ? selectedEdge.id : 'none'}</p>
         <p className="hint">{status}</p>
       </section>
       <section className="panel" style={{padding:0}}>
@@ -253,7 +613,8 @@ function App(){
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+            onNodeClick={(_, node) => { setSelectedNodeId(node.id); setSelectedEdgeId(''); }}
+            onEdgeClick={(_, edge) => { setSelectedEdgeId(edge.id); setSelectedNodeId(''); }}
             fitView
           >
             <MiniMap />

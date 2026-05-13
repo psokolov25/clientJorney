@@ -19,11 +19,25 @@ class RuntimeCompletionServiceTest {
         ConversationSessionService sessionService = new ConversationSessionService();
         ServiceSelectionProcessor selectionProcessor = new ServiceSelectionProcessor(sessionService);
         CapturingVisitCreationClient visitClient = new CapturingVisitCreationClient();
-        RuntimeCompletionService completionService = new RuntimeCompletionService(selectionProcessor, sessionService, visitClient);
+        VisitCreationSettingsService settingsService = new VisitCreationSettingsService();
+        RuntimeCompletionService completionService = new RuntimeCompletionService(selectionProcessor, sessionService, visitClient, settingsService);
 
         UUID sessionId = UUID.randomUUID();
+        UUID scenarioId = UUID.randomUUID();
+        settingsService.put(scenarioId, new com.clientjourney.app.admin.dto.VisitCreationSettingsDto(
+            "VISIT_MANAGER",
+            "https://default.example",
+            java.util.Map.of("spb", "https://spb.example"),
+            "ENTRYPOINT_WITH_PARAMETERS",
+            java.util.Map.of()
+        ));
         SelectedServiceDto selected = new SelectedServiceDto("svc-1", "S1", "Service 1");
-        sessionService.registerSession(sessionId, "scenario-42", "TELEGRAM", "user-abc", java.util.Map.of("source", "tg", "priority", 3), List.of(selected), 1, 3);
+        sessionService.registerSession(sessionId, "scenario-42", "TELEGRAM", "user-abc", java.util.Map.of(
+            "source", "tg",
+            "priority", 3,
+            "scenarioId", scenarioId.toString(),
+            "branchId", "spb"
+        ), List.of(selected), 1, 3);
 
         var response = completionService.selectServicesAndComplete(sessionId, List.of(selected));
 
@@ -35,6 +49,9 @@ class RuntimeCompletionServiceTest {
         assertEquals("tg", visitClient.capturedRequest.parameters().get("source"));
         assertEquals("3", visitClient.capturedRequest.parameters().get("priority"));
         assertEquals("1", visitClient.capturedRequest.parameters().get("selectedServicesCount"));
+        assertEquals("VISIT_MANAGER", visitClient.capturedRequest.parameters().get("visitProvider"));
+        assertEquals("ENTRYPOINT_WITH_PARAMETERS", visitClient.capturedRequest.parameters().get("visitMode"));
+        assertEquals("https://spb.example", visitClient.capturedRequest.parameters().get("visitBaseUrl"));
     }
 
     private static final class CapturingVisitCreationClient implements VisitCreationClient {

@@ -112,7 +112,7 @@ class RuntimeControllerTest {
         ServiceSelectionProcessor processor = new ServiceSelectionProcessor(sessionService);
         RuntimeSessionService runtimeSessionService = new RuntimeSessionService(new ScenarioEngine(), sessionService);
         RuntimeAnswerService answerService = new RuntimeAnswerService(sessionService);
-        RuntimeCompletionService completionService = new RuntimeCompletionService(processor, sessionService, new DryRunVisitCreationClient());
+        RuntimeCompletionService completionService = new RuntimeCompletionService(processor, sessionService, new DryRunVisitCreationClient(), new VisitCreationSettingsService());
         InMemoryScenarioRepository repo = new InMemoryScenarioRepository();
         repo.save(new Scenario(UUID.randomUUID(), "medical-registration", "Medical", null, ScenarioStatus.DRAFT, 1, Instant.now(), Instant.now()));
         ScenarioService scenarioService = new ScenarioService(repo);

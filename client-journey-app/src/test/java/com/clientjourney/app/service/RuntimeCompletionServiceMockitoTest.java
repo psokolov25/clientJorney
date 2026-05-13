@@ -31,7 +31,7 @@ class RuntimeCompletionServiceMockitoTest {
         )));
         when(visitClient.createVisit(any())).thenReturn(new VisitCreationResult(VisitCreationStatus.SUCCESS, "MOCK", "v1", "t1", null, null));
 
-        RuntimeCompletionService service = new RuntimeCompletionService(selectionProcessor, sessionService, visitClient);
+        RuntimeCompletionService service = new RuntimeCompletionService(selectionProcessor, sessionService, visitClient, new VisitCreationSettingsService());
         var response = service.selectServicesAndComplete(sessionId, List.of(new SelectedServiceDto("1", "svc", "S")));
 
         assertEquals("COMPLETED", response.status());
